@@ -17,6 +17,7 @@ LLMFlow Agent is an **Agentic AI** system built in Python, connecting language m
 * Maintains conversation context through optimized memory systems
 * Determines optimal action pathways through proprietary decision trees
 
+<p align="center">
 <table border="1" cellpadding="8" cellspacing="0">
   <thead>
     <tr>
@@ -78,7 +79,7 @@ LLMFlow Agent is an **Agentic AI** system built in Python, connecting language m
     </tr>
   </tbody>
 </table>
-
+</p>
 
 ### Project Classification
 1. **AI-assistant with tool integration**:
