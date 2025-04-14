@@ -1,6 +1,6 @@
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/906ba435-47eb-42e2-be75-7dc971875b42" alt="logo"/>
-  <br>  <br>
+  <img src="https://github.com/user-attachments/assets/906ba435-47eb-42e2-be75-7dc971875b42" alt="logo" height="100"/>
+  <br><br>
   <img src="https://img.shields.io/badge/python-3.9%2B-green" alt="Python">
   <img src="https://img.shields.io/badge/Type-Agentic%20AI-blue" alt="Type">
   <img src="https://img.shields.io/badge/Status-Production%20Ready-success" alt="Status">
