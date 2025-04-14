@@ -17,69 +17,18 @@ LLMFlow Agent is an **Agentic AI** system built in Python, connecting language m
 * Maintains conversation context through optimized memory systems
 * Determines optimal action pathways through proprietary decision trees
 
-<p align="center">
-<table border="1" cellpadding="8" cellspacing="0">
-  <thead>
-    <tr>
-      <th>Tool Name</th>
-      <th>Description</th>
-      <th>File</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>Air Quality Tool</td>
-      <td>Environmental data</td>
-      <td><a href="tools/air_quality_tool.py">air_quality_tool.py</a></td>
-    </tr>
-    <tr>
-      <td>Currency Tool</td>
-      <td>Exchange rates with banking-grade accuracy</td>
-      <td><a href="tools/currency_tool.py">currency_tool.py</a></td>
-    </tr>
-    <tr>
-      <td>Geolocation Tool</td>
-      <td>Location services</td>
-      <td><a href="tools/geolocation_tool.py">geolocation_tool.py</a></td>
-    </tr>
-    <tr>
-      <td>News Tool</td>
-      <td>RSS-based news aggregation</td>
-      <td><a href="tools/news_tool.py">news_tool.py</a></td>
-    </tr>
-    <tr>
-      <td>Stock Tool</td>
-      <td>Financial data processing</td>
-      <td><a href="tools/stock_tool.py">stock_tool.py</a></td>
-    </tr>
-    <tr>
-      <td>Time Tool</td>
-      <td>Timezone conversions</td>
-      <td><a href="tools/time_tool.py">time_tool.py</a></td>
-    </tr>
-    <tr>
-      <td>Web Parser Tool</td>
-      <td>Content extraction</td>
-      <td><a href="tools/web_parser_tool.py">web_parser_tool.py</a></td>
-    </tr>
-    <tr>
-      <td>Weather Tool</td>
-      <td>Forecasts and conditions</td>
-      <td><a href="tools/weather_tool.py">weather_tool.py</a></td>
-    </tr>
-    <tr>
-      <td>Wikipedia Tool</td>
-      <td>Reference information</td>
-      <td><a href="tools/wikipedia_tool.py">wikipedia_tool.py</a></td>
-    </tr>
-    <tr>
-      <td>Search Tool</td>
-      <td>Web search via DuckDuckGo</td>
-      <td><a href="tools/search_tool.py">search_tool.py</a></td>
-    </tr>
-  </tbody>
-</table>
-</p>
+| Tool Name | Description | File |
+| --- | --- | --- |
+| Air Quality Tool | Environmental data | [air_quality_tool.py](tools/air_quality_tool.py) |
+| Currency Tool | Exchange rates with banking-grade accuracy | [currency_tool.py](tools/currency_tool.py) |
+| Geolocation Tool | Location services | [geolocation_tool.py](tools/geolocation_tool.py) |
+| News Tool | RSS-based news aggregation | [news_tool.py](tools/news_tool.py) |
+| Stock Tool | Financial data processing | [stock_tool.py](tools/stock_tool.py) |
+| Time Tool | Timezone conversions | [time_tool.py](tools/time_tool.py) |
+| Web Parser Tool | Content extraction | [web_parser_tool.py](tools/web_parser_tool.py) |
+| Weather Tool | Forecasts and conditions | [weather_tool.py](tools/weather_tool.py) |
+| Wikipedia Tool | Reference information | [wikipedia_tool.py](tools/wikipedia_tool.py) |
+| Search Tool | Web search via DuckDuckGo | [search_tool.py](tools/search_tool.py) |
 
 ### Project Classification
 1. **AI-assistant with tool integration**:
