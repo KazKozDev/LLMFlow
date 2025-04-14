@@ -1,0 +1,24 @@
+{
+    "name": "Currency and Wikipedia Chain",
+    "description": "Convert currency and get information about target currency",
+    "chain": [
+        {
+            "tool_name": "currency_tool",
+            "function_name": "convert_currency",
+            "input_params": {
+                "amount": "{{amount}}",
+                "from_currency": "{{from_currency}}",
+                "to_currency": "{{to_currency}}"
+            },
+            "output_key": "currency_data"
+        },
+        {
+            "tool_name": "wikipedia_tool",
+            "function_name": "get_article_summary",
+            "input_params": {
+                "query": "{{to_currency}} currency"
+            },
+            "output_key": "currency_info"
+        }
+    ]
+}

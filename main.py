@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import asyncio
 import requests
 from typing import Dict, List, Any, Optional, Tuple, Union
 import importlib.util
@@ -191,6 +192,10 @@ class LLMFlowAgent:
         
         # Create tool descriptions for the LLM
         self.tool_descriptions = self._create_tool_descriptions()
+        
+        # Initialize chain orchestrator
+        from chain_orchestrator import ChainOrchestrator
+        self.orchestrator = ChainOrchestrator(self)
         
     def _discover_tools(self) -> Dict[str, Dict[str, Any]]:
         """
@@ -452,7 +457,7 @@ class LLMFlowAgent:
     
     def determine_query_type(self, query: str) -> Dict[str, Any]:
         """
-        Use the LLM to determine if the user's query is a tool request or casual conversation.
+        Use the LLM to determine if the user's query is a chain query, tool request, or casual conversation.
         
         Args:
             query (str): The user's query
@@ -470,9 +475,12 @@ class LLMFlowAgent:
         language = self.memory.detect_language() or "en"
         
         # Create the prompt
-        prompt = f"""You are an assistant that can handle casual conversations and also use tools to provide information.
+        prompt = f"""You are an assistant that can handle casual conversations and use tools to provide information.
 
-First, determine if the user's query requires using a tool or if it's just a casual conversation.
+First, determine if the user's query requires:
+1. Multiple tools in sequence (e.g., "check weather in Tokyo and find news if raining")
+2. A single tool (e.g., "what's the weather in London")
+3. Just casual conversation (e.g., "how are you")
 
 Available tool categories:
 - Currency conversion
@@ -493,52 +501,55 @@ Recent conversation:
 
 User query: "{query}"
 
-Respond with a JSON object containing the following fields:
-- "query_type": Either "tool_request" or "casual_conversation"
-- "explanation": Brief explanation for the classification
-- "language": The detected language of the query
-- "translation": If the query is not in English, provide an English translation
-
-Format:
+IMPORTANT: You must respond with ONLY a valid JSON object, no other text. The JSON must contain these exact fields:
 {{
-  "query_type": "tool_request" or "casual_conversation",
-  "explanation": "Explanation for the classification",
+  "query_type": "chain_query" or "tool_request" or "casual_conversation",
+  "explanation": "Brief explanation for the classification",
   "language": "language_code",
   "translation": "English translation if needed, otherwise null"
 }}
-
-DO NOT include any other text in your response, ONLY the JSON object.
 """
 
         # Get the LLM's response
         llm_response = self.query_llm(prompt)
         
         try:
-            # Extract the JSON part of the response
-            json_match = re.search(r'(\{.*\})', llm_response, re.DOTALL)
-            if json_match:
-                json_str = json_match.group(1)
-                result = json.loads(json_str)
-                
-                print(f"Query classification: {result.get('query_type')}")
-                print(f"Explanation: {result.get('explanation')}")
-                
-                return result
-            else:
-                print("Could not extract JSON from LLM response")
-                print(f"Raw response: {llm_response}")
-                return {
-                    "query_type": "casual_conversation",  # Default to casual if JSON parsing fails
-                    "explanation": "Failed to parse LLM response",
-                    "language": language,
-                    "translation": None
-                }
+            # Clean the response to ensure it's valid JSON
+            llm_response = llm_response.strip()
+            if not llm_response.startswith('{'):
+                # Try to find JSON in the response
+                json_match = re.search(r'(\{.*\})', llm_response, re.DOTALL)
+                if json_match:
+                    llm_response = json_match.group(1)
+                else:
+                    raise ValueError("No valid JSON found in response")
+            
+            # Parse the JSON
+            result = json.loads(llm_response)
+            
+            # Validate required fields
+            required_fields = ["query_type", "explanation", "language", "translation"]
+            for field in required_fields:
+                if field not in result:
+                    raise ValueError(f"Missing required field: {field}")
+            
+            # Validate query_type
+            valid_types = ["chain_query", "tool_request", "casual_conversation"]
+            if result["query_type"] not in valid_types:
+                raise ValueError(f"Invalid query_type: {result['query_type']}")
+            
+            print(f"Query classification: {result.get('query_type')}")
+            print(f"Explanation: {result.get('explanation')}")
+            
+            return result
+            
         except Exception as e:
             print(f"Error parsing LLM response: {str(e)}")
             print(f"Raw response: {llm_response}")
+            # Return a default response that will handle the query as a casual conversation
             return {
-                "query_type": "casual_conversation",  # Default to casual if JSON parsing fails
-                "explanation": f"Error: {str(e)}",
+                "query_type": "casual_conversation",
+                "explanation": f"Error parsing response: {str(e)}",
                 "language": language,
                 "translation": None
             }
@@ -710,30 +721,61 @@ Respond directly to the user in their language.
         # Add the query to memory
         self.memory.add_message("user", query)
         
-        # First, determine if this is a tool request or casual conversation
-        query_info = self.determine_query_type(query)
-        query_type = query_info.get("query_type", "casual_conversation")
-        translation = query_info.get("translation")
-        
-        # Handle based on query type
-        if query_type == "tool_request":
-            # Analyze the query to determine tool and function
-            tool_name, function_name, args = self.analyze_tool_query(query, translation)
+        try:
+            # First, determine if this is a tool request, chain query, or casual conversation
+            query_info = self.determine_query_type(query)
+            query_type = query_info.get("query_type", "casual_conversation")
+            translation = query_info.get("translation")
             
-            if not tool_name or not function_name:
-                response = "I understand you're asking me to use a tool, but I'm not sure which one would help. Could you please be more specific about what information you're looking for?"
+            # Handle based on query type
+            if query_type == "chain_query":
+                try:
+                    # Generate and execute a chain of tool calls
+                    chain = self.orchestrator.generate_chain(query)
+                    if not chain:
+                        raise ValueError("Failed to generate a valid chain of tool calls")
+                    
+                    context = asyncio.run(self.orchestrator.execute_chain(chain))
+                    if not context:
+                        raise ValueError("Failed to execute the chain of tool calls")
+                    
+                    response = self.orchestrator.format_response(context)
+                    if not response:
+                        raise ValueError("Failed to format the response")
+                        
+                except Exception as e:
+                    print(f"Error in chain query execution: {str(e)}")
+                    # Try to handle the query as a tool request instead
+                    tool_name, function_name, args = self.analyze_tool_query(query, translation)
+                    if tool_name and function_name:
+                        response = self.execute_tool(tool_name, function_name, args)
+                    else:
+                        response = "I apologize, but I encountered an error while trying to process your request. Could you please try rephrasing your question?"
+                        
+            elif query_type == "tool_request":
+                # Analyze the query to determine tool and function
+                tool_name, function_name, args = self.analyze_tool_query(query, translation)
+                
+                if not tool_name or not function_name:
+                    response = "I understand you're asking me to use a tool, but I'm not sure which one would help. Could you please be more specific about what information you're looking for?"
+                else:
+                    # Execute the tool
+                    print(f"Using tool: {tool_name}, function: {function_name}, args: {args}")
+                    response = self.execute_tool(tool_name, function_name, args)
             else:
-                # Execute the tool
-                print(f"Using tool: {tool_name}, function: {function_name}, args: {args}")
-                response = self.execute_tool(tool_name, function_name, args)
-        else:
-            # Handle casual conversation
-            response = self.handle_casual_conversation(query, query_info)
-        
-        # Add response to memory
-        self.memory.add_message("assistant", response)
-        
-        return response
+                # Handle casual conversation
+                response = self.handle_casual_conversation(query, query_info)
+            
+            # Add response to memory
+            self.memory.add_message("assistant", response)
+            
+            return response
+            
+        except Exception as e:
+            error_msg = f"I apologize, but I encountered an error while processing your request: {str(e)}"
+            print(error_msg)
+            self.memory.add_message("assistant", error_msg)
+            return error_msg
 
 # Interactive CLI for testing the agent
 def main():

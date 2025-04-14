@@ -1,0 +1,22 @@
+{
+    "name": "Weather and Air Quality Chain",
+    "description": "Get weather and air quality information for a location",
+    "chain": [
+        {
+            "tool_name": "weather_tool",
+            "function_name": "get_weather",
+            "input_params": {
+                "location": "{{city}}"
+            },
+            "output_key": "weather_data"
+        },
+        {
+            "tool_name": "air_quality_tool",
+            "function_name": "get_air_quality",
+            "input_params": {
+                "location": "{{weather_data.location.city}}"
+            },
+            "output_key": "air_quality_data"
+        }
+    ]
+}

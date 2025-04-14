@@ -1,0 +1,24 @@
+{
+    "name": "Weather and News Chain",
+    "description": "Get weather and related news for a location",
+    "chain": [
+        {
+            "tool_name": "weather_tool",
+            "function_name": "get_weather",
+            "input_params": {
+                "location": "{{city}}"
+            },
+            "output_key": "weather_data"
+        },
+        {
+            "tool_name": "news_tool",
+            "function_name": "search_news",
+            "input_params": {
+                "query": "{{weather_data.location.city}} events",
+                "max_results": 3
+            },
+            "output_key": "news_data",
+            "condition": "weather_data['precipitation']['rain'] == 0"
+        }
+    ]
+}

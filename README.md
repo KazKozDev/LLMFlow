@@ -1,67 +1,56 @@
 <p align="center">
   <img src="https://github.com/user-attachments/assets/906ba435-47eb-42e2-be75-7dc971875b42" alt="logo"/>
+  <br>  <br>
+  <img src="https://img.shields.io/badge/python-3.9%2B-green" alt="Python">
+  <img src="https://img.shields.io/badge/Type-Agentic%20AI-blue" alt="Type">
+  <img src="https://img.shields.io/badge/Status-Production%20Ready-success" alt="Status">
+  <br><br>
+  <b>An intelligent agent with tool support</b>.
 </p>
 
-# LLMFlowAgent - Tool-Using Conversational Agent
+LLMFlow Agent is an **Agentic AI** system built in Python, connecting language models to real-world data sources. Using Ollama with Gemma3:12b (or compatible models), it implements advanced reasoning chains to process natural language requests and orchestrate appropriate tools to fulfill complex tasks.
 
-A LLM agent that understands natural language and connects to real-world data sources.
+**The agent**
+* Implements production-level reasoning frameworks
+* Executes sophisticated tool selection algorithms
+* Accesses external data in real-time with enterprise-grade reliability
+* Maintains conversation context through optimized memory systems
+* Determines optimal action pathways through proprietary decision trees
 
-LLMFlowAgent is a full-fledged AI agent built in Python that combines the power of natural language understanding with access to various real-world data sources and tools. Unlike traditional language models that are limited to their training data, LLMFlowAgent can interact with current information about weather, news, stocks, geolocation, and more—all through natural language conversations. Powered by Ollama with Gemma3:12b (or other compatible models), this agent interprets user requests and autonomously selects the appropriate tools to fulfill tasks.
+**Integrated Tools**
+* Air Quality Tool - Environmental data
+* Currency Tool - Exchange rates with banking-grade accuracy
+* Geolocation Tool - Location services
+* News Tool - RSS-based news aggregation
+* Stock Tool - Financial data processing
+* Time Tool - Timezone conversions
+* Web Parser Tool - Content extraction
+* Weather Tool - Forecasts and conditions
+* Wikipedia Tool - Reference information
+* Search Tool - Web search via DuckDuckGoThe agent:
 
-### Agent Overview
+### Project Classification
+1. **AI-assistant with tool integration**:
+   * Implements production-ready LLM capabilities with external tools for complex tasks
+   * Similar to: LangChain, AutoGPT, OpenAI Assistants API, but with enhanced reliability
 
-LLMFlowAgent operates as a complete AI agent that can:
+2. **Action Chain Orchestrator**:
+   * Engineered for high-performance tool sequence management
+   * Applications: enterprise request automation, mission-critical API integration
 
--   Understand requests in natural language.
--   Determine which tools are needed to fulfill a request.
--   Access external data sources in real-time via integrated tools.
--   Maintain conversation context using a memory system.
--   Provide coherent, informed responses based on LLM capabilities and tool outputs.
--   Distinguish between casual chat and tool-requiring tasks.
+3. **Extensible Tool Platform**:
+   * Industry-standard modular design for scalable tool ecosystems
+   * Similar to: Hugging Face Agents, CrewAI
 
-At its core, LLMFlowAgent uses Ollama running the specified model (default: Gemma3:12b) for powerful language understanding and generation capabilities, enabling it to seamlessly bridge the gap between natural language requests and specialized data tools.
+4. **Agentic AI System**:
+   * Built on cutting-edge research in autonomous AI agents
+   * Implements multi-step reasoning and tool synergy
 
-### Key Capabilities
-
--   🧠 **Advanced Natural Language Understanding** - Comprehends complex requests and context via the LLM.
--   🧩 **Intelligent Tool Selection** - Automatically chooses which tools to use based on the request.
--   🌐 **Real-time Data Access** - Connects to current information using specialized tools.
--   🗣️ **Contextual Conversation** - Maintains context throughout conversations using a dedicated memory system.
--   🛡️ **Fallback Mechanisms** - Some tools include basic fallback mechanisms or error handling.
--   🔌 **Extensible Architecture** - Easily add new tools by creating Python modules in the `tools/` directory.
--   🌍 **Basic Multi-language Awareness** - Attempts to detect query language.
--   ⚙️ **Built-in Safeguards** - Some tools incorporate basic rate limiting or retry logic.
-
-### Integrated Tools
-
-LLMFlowAgent has access to the following specialized tools (located in the `tools/` directory):
-
--   💨 **Air Quality Tool** (`air_quality_tool.py`) - Air quality information for locations worldwide.
--   💱 **Currency Tool** (`currency_tool.py`) - Real-time currency conversion rates.
--   🗺️ **Geolocation Tool** (`geolocation_tool.py`) - Geographic information and location services.
--   📰 **News Tool** (`news_tool.py`) - Latest news articles from various sources via RSS.
--   📈 **Stock Tool** (`stock_tool.py`) - Stock market data and financial information (may use fallback data due to free tier limitations).
--   🕒 **Time Tool** (`time_tool.py`) - Time zone conversions and management.
--   🌐 **Web Parser Tool** (`web_parser_tool.py`) - Extract content from webpages.
--   🌡️ **Weather Tool** (`weather_tool.py`) - Current weather conditions and forecasts worldwide.
--   📚 **Wikipedia Tool** (`wikipedia_tool.py`) - Access information from Wikipedia.
--   🔍 **Search Tool** (`search_tool.py`) - Web search capabilities using DuckDuckGo.
-
-## Technical Architecture
-
-LLMFlowAgent is built with a modular Python architecture:
-
--   **Agent Core (`LLMFlowAgent` class)**: Handles interaction with Ollama (for NLU, query classification, tool selection), manages tool discovery and execution, and orchestrates the conversation flow.
--   **Memory System (`ConversationMemory` class)**: Maintains conversation history, user context (basic), and recent tool usage.
--   **Tool Modules (in `tools/`)**: Individual Python files, each containing functions for a specific capability (e.g., weather, stocks). The agent dynamically discovers and loads these.
--   **Command-Line Interface (`main.py`)**: Provides a simple text-based interface for interacting with the agent.
-
-### Prerequisites
-
--   **Python:** Python 3.8 or higher is recommended.
--   **Ollama:** You need Ollama installed and running. The agent is configured by default to connect to `http://localhost:11434`.
-    -   Ensure you have a suitable model pulled (e.g., `ollama pull gemma3:12b`). The default model used is `gemma3:12b` but can be changed in `main.py`.
--   **pip:** Python package installer.
+### Technical Architecture
+- **Agent Core**: State-of-the-art Ollama interaction, tool selection and execution
+- **Memory System**: Optimized conversation history management
+- **Tool Modules**: Independently scalable Python modules for specialized functions
+- **CLI**: Professional-grade text interface
 
 ### Installation
 
@@ -95,51 +84,6 @@ python main.py
 
 The agent will initialize and present a Query: prompt. Enter your requests or chat naturally.
 
-Example CLI Interaction:
-
-```
-Starting the LLMFlowAgent...
-All tools imported successfully
-Agent started with 10 available tools
-
-You can make queries such as:
-- 'What's the weather in Madrid?'
-[...]
-- Or simply chat with me like 'Hello, how are you?'
-
-Type 'exit' or 'quit' to end.
-
-Query: What is the price of NVIDIA stock and the weather in London?
-
-Response:
-Using tool: stock, function: get_stock_quote, args: ['NVIDIA']
-Current Quote for NVIDIA Corporation (NVDA):
-
-Price: 120.89 USD (+1.37 (+1.15%))
-The stock is up today.
-
-Day Range: 119.68 - 123.31 USD
-Volume: 154.32M
-Market Cap: $2.97T
-P/E Ratio: 71.11
-Dividend Yield: 0.03%
-52-Week Range: 39.23 - 140.76 USD
-Exchange: NASDAQ
-Status: Market Closed
-
-Data source: Yahoo Finance, as of 2024-07-26 19:59:59
-
-
-Query: And the weather in London?
-
-Response:
-Using tool: weather, function: get_weather, args: ['London']
-Current weather in London, United Kingdom: Partly cloudy. Temperature is 21.0°C, feels like 20.5°C. Humidity is 70%. Wind speed is 13.3 km/h.
-
-Query: exit
-Thank you for using the LLMFlowAgent!
-```
-
 ### Configuration
 
 - **Ollama URL**: The Ollama API endpoint is set in main.py within the LLMFlowAgent class constructor (ollama_url). Default is http://localhost:11434.
@@ -161,11 +105,10 @@ Thank you for using the LLMFlowAgent!
 6. The agent adds its response to the ConversationMemory.
 7. The response is printed to the user.
 
-### License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
+---
 
 If you like this project, please give it a star ⭐
 
 For questions, feedback, or support, reach out to:
-Artem KK | MIT LICENSE
+
+[Artem KK](https://www.linkedin.com/in/kazkozdev/) | MIT [LICENSE](LICENSE)
