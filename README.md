@@ -17,9 +17,18 @@ LLMFlow Agent is an **Agentic AI** system built in Python, connecting language m
 * Maintains conversation context through optimized memory systems
 * Determines optimal action pathways through proprietary decision trees
   
-<div align="center">
-Tool NameDescriptionFileAir Quality ToolEnvironmental dataair_quality_tool.pyCurrency ToolExchange rates with banking-grade accuracycurrency_tool.pyGeolocation ToolLocation servicesgeolocation_tool.pyNews ToolRSS-based news aggregationnews_tool.pyStock ToolFinancial data processingstock_tool.pyTime ToolTimezone conversionstime_tool.pyWeb Parser ToolContent extractionweb_parser_tool.pyWeather ToolForecasts and conditionsweather_tool.pyWikipedia ToolReference informationwikipedia_tool.pySearch ToolWeb search via DuckDuckGosearch_tool.py
-</div>
+| Tool Name | Description | File |
+| --- | --- | --- |
+| Air Quality Tool | Environmental data | [air_quality_tool.py](tools/air_quality_tool.py) |
+| Currency Tool | Exchange rates with banking-grade accuracy | [currency_tool.py](tools/currency_tool.py) |
+| Geolocation Tool | Location services | [geolocation_tool.py](tools/geolocation_tool.py) |
+| News Tool | RSS-based news aggregation | [news_tool.py](tools/news_tool.py) |
+| Stock Tool | Financial data processing | [stock_tool.py](tools/stock_tool.py) |
+| Time Tool | Timezone conversions | [time_tool.py](tools/time_tool.py) |
+| Web Parser Tool | Content extraction | [web_parser_tool.py](tools/web_parser_tool.py) |
+| Weather Tool | Forecasts and conditions | [weather_tool.py](tools/weather_tool.py) |
+| Wikipedia Tool | Reference information | [wikipedia_tool.py](tools/wikipedia_tool.py) |
+| Search Tool | Web search via DuckDuckGo | [search_tool.py](tools/search_tool.py) |
 
 ### Project Classification
 1. **AI-assistant with tool integration**:
