@@ -17,6 +17,69 @@ LLMFlow Agent is an **Agentic AI** system built in Python, connecting language m
 * Maintains conversation context through optimized memory systems
 * Determines optimal action pathways through proprietary decision trees
 
+<table border="1" cellpadding="8" cellspacing="0">
+  <thead>
+    <tr>
+      <th>Tool Name</th>
+      <th>Description</th>
+      <th>File</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Air Quality Tool</td>
+      <td>Environmental data</td>
+      <td><a href="tools/air_quality_tool.html">air_quality_tool.html</a></td>
+    </tr>
+    <tr>
+      <td>Currency Tool</td>
+      <td>Exchange rates with banking-grade accuracy</td>
+      <td><a href="tools/currency_tool.html">currency_tool.html</a></td>
+    </tr>
+    <tr>
+      <td>Geolocation Tool</td>
+      <td>Location services</td>
+      <td><a href="tools/geolocation_tool.html">geolocation_tool.html</a></td>
+    </tr>
+    <tr>
+      <td>News Tool</td>
+      <td>RSS-based news aggregation</td>
+      <td><a href="tools/news_tool.html">news_tool.html</a></td>
+    </tr>
+    <tr>
+      <td>Stock Tool</td>
+      <td>Financial data processing</td>
+      <td><a href="tools/stock_tool.html">stock_tool.html</a></td>
+    </tr>
+    <tr>
+      <td>Time Tool</td>
+      <td>Timezone conversions</td>
+      <td><a href="tools/time_tool.html">time_tool.html</a></td>
+    </tr>
+    <tr>
+      <td>Web Parser Tool</td>
+      <td>Content extraction</td>
+      <td><a href="tools/web_parser_tool.html">web_parser_tool.html</a></td>
+    </tr>
+    <tr>
+      <td>Weather Tool</td>
+      <td>Forecasts and conditions</td>
+      <td><a href="tools/weather_tool.html">weather_tool.html</a></td>
+    </tr>
+    <tr>
+      <td>Wikipedia Tool</td>
+      <td>Reference information</td>
+      <td><a href="tools/wikipedia_tool.html">wikipedia_tool.html</a></td>
+    </tr>
+    <tr>
+      <td>Search Tool</td>
+      <td>Web search via DuckDuckGo</td>
+      <td><a href="tools/search_tool.html">search_tool.html</a></td>
+    </tr>
+  </tbody>
+</table>
+
+
 **Integrated Tools**
 * Air Quality Tool - Environmental data
 * Currency Tool - Exchange rates with banking-grade accuracy
