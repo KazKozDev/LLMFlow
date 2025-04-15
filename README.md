@@ -22,7 +22,8 @@ LLMFlow Agent is an **Agentic AI** system built in Python, connecting language m
 | Air Quality Tool | Environmental data | [air_quality_tool.py](tools/air_quality_tool.py) |
 | Currency Tool | Exchange rates with banking-grade accuracy via web server | [currency_tool.py](tools/currency_tool.py) |
 | Geolocation Tool | Location services | [geolocation_tool.py](tools/geolocation_tool.py) |
-| News Tool | RSS-based news aggregation | [news_tool.py](tools/news_tool.py) |
+| News Tool | RSS-based news aggregation (NLTK data required)
+ | [news_tool.py](tools/news_tool.py) |
 | Stock Tool | Financial data processing | [stock_tool.py](tools/stock_tool.py) |
 | Time Tool | Timezone conversions | [time_tool.py](tools/time_tool.py) |
 | Web Parser Tool | Content extraction | [web_parser_tool.py](tools/web_parser_tool.py) |
