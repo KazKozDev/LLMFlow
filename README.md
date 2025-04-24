@@ -13,10 +13,10 @@
 ### Features
 
 - **Advanced Reasoning**: Sophisticated decision-making algorithms classify queries and select optimal tools.
-- **Tool Integration**: Modular ecosystem of tools for tasks like weather forecasting, news aggregation, and web searches.
+- **Tool Integration**: Modular ecosystem of tools for tasks like weather, news aggregation, and web searches.
 - **Real-Time Data Access**: Connects to free APIs (Open-Meteo, DuckDuckGo, RSS feeds) for up-to-date information.
 - **Conversation Memory**: Maintains context with an optimized memory system for natural dialogues.
-- **Multilingual Support**: Processes queries in multiple languages (e.g., English, Russian, Japanese) with entity normalization.
+- **Multilingual Support**: Processes queries in multiple languages with entity normalization.
 - **Extensible Architecture**: Easily add new tools or integrate with other LLMs via a modular design.
 - **Local Deployment**: Runs locally with Ollama, ensuring privacy and data control.
 
