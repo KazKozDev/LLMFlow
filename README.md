@@ -20,7 +20,7 @@
 - **Extensible Architecture**: Easily add new tools or integrate with other LLMs via a modular design.
 - **Local Deployment**: Runs locally with Ollama, ensuring privacy and data control.
 
-### Supported Tools
+### Tools
 
 | Tool Name            | Description                                      | File                                    |
 |----------------------|--------------------------------------------------|-----------------------------------------|
@@ -36,7 +36,6 @@
 | Web Parser Tool      | Extracts content from web pages                  | [web_parser_tool.py](tools/web_parser_tool.py) |
 | Search Tool          | Performs web searches via DuckDuckGo             | [search_tool.py](tools/search_tool.py) |
 
----
 
 ### Project Classification
 
