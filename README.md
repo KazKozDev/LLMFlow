@@ -19,7 +19,7 @@
 - **Multilingual Support**: Processes queries in multiple languages with entity normalization.
 - **Extensible Architecture**: Easily add new tools or integrate with other LLMs via a modular design.
 - **Local Deployment**: Runs locally with Ollama, ensuring privacy and data control.
-
+---
 ### Tools
 
 | Tool Name            | Description                                      | File                                    |
