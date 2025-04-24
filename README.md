@@ -113,7 +113,7 @@ The agent will initialize and display a Query: prompt. Enter natural language re
 
 Type `exit`, `quit`, or `q` to close the agent.
 
-## Example Queries
+### Example Queries
 
 ```
 Query: What's the weather in Moscow?
