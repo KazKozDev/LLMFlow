@@ -61,7 +61,7 @@
 ### Technical Architecture
 
 - **Agent Core**: Manages LLM interactions, query classification, and tool execution via `main.py`.
-- **Memory System**: Handles conversation history with the `ConversationMemory` class for context-aware responses.
+- **Memory System**: Handles conversation history with the `ConversationMemory` for context-aware responses.
 - **Tool Modules**: Independent Python modules for specialized tasks, dynamically discovered.
 - **CLI Interface**: Professional-grade command-line interface for interactive testing.
 - **LLM Backend**: Integrates with Ollama (default: `gemma3:12b`) for local, privacy-focused processing.
