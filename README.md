@@ -55,6 +55,15 @@
    - Built on autonomous AI research with multi-step reasoning and tool synergy.
    - **Use Cases**: Research, prototyping, production-grade AI solutions.
 
+### Use Cases
+
+- **Chatbots**: Build conversational bots for platforms like Telegram or Discord with real-time data access.
+- **Automation**: Automate tasks like news monitoring, weather updates, or currency conversions.
+- **Education**: Use as a teaching tool for AI, NLP, or API integration courses.
+- **Research**: Collect and analyze data (e.g., news trends, weather patterns) with minimal setup.
+- **Local Assistants**: Create privacy-focused, offline AI assistants for personal or enterprise use.
+- **Prototyping**: Rapidly develop and test new AI-driven features or tools.
+
 ---
 
 ### Technical Architecture
@@ -157,15 +166,6 @@ Customize the agent by modifying settings in main.py:
    - LLM (handle_casual_conversation) generates a natural response using context and history.
 7. **Response Storage**: Agent's response is saved in ConversationMemory.
 8. **Output**: Response is displayed to the user.
-
-### Use Cases
-
-- **Chatbots**: Build conversational bots for platforms like Telegram or Discord with real-time data access.
-- **Automation**: Automate tasks like news monitoring, weather updates, or currency conversions.
-- **Education**: Use as a teaching tool for AI, NLP, or API integration courses.
-- **Research**: Collect and analyze data (e.g., news trends, weather patterns) with minimal setup.
-- **Local Assistants**: Create privacy-focused, offline AI assistants for personal or enterprise use.
-- **Prototyping**: Rapidly develop and test new AI-driven features or tools.
 
 ### Contributing
 
