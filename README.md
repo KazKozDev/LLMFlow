@@ -10,9 +10,7 @@
 
 **LLMFlowAgent** is a **production-ready Agentic AI** system built in Python, seamlessly connecting large language models (LLMs) to real-world data sources. Powered by **Ollama** with the **Gemma3:12b** model (or compatible LLMs), it leverages advanced reasoning chains to process natural language queries, orchestrate specialized tools, and deliver accurate, context-aware responses. Whether handling casual conversations or complex tasks like fetching weather, news, or web search results, LLMFlowAgent is designed for reliability, extensibility, and enterprise-grade performance.
 
----
-
-### Key Features
+### Features
 
 - **Advanced Reasoning**: Sophisticated decision-making algorithms classify queries and select optimal tools.
 - **Tool Integration**: Modular ecosystem of tools for tasks like weather forecasting, news aggregation, and web searches.
