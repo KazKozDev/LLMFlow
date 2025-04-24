@@ -136,7 +136,7 @@ Customize the agent by modifying settings in main.py:
 
 - **Ollama URL**: Set in the LLMFlowAgent constructor (ollama_url). Default: http://localhost:11434.
 - **LLM Model**: Configured in LLMFlowAgent (self.model). Default: gemma3:12b. Update to match your model.
-- **Conversation Memory**: Adjust the maximum stored messages in ConversationMemory (max_messages, default: 10).
+- **Conversation Memory**: Adjust the maximum stored messages (max_messages, default: 10).
 - **Tool Directory**: Tools are loaded from the tools/ folder. Add new tools by placing modules in the directory.
 
 ### How It Works
