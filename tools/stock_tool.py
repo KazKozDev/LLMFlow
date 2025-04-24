@@ -875,7 +875,8 @@ class StockTool:
                 "sector_performance": sector_performance,
                 "data_source": "Alpha Vantage",
                 "timestamp": timestamp,
-                "market_time": market_time
+                "market_time": market_time,
+                "note": "This data is simulated due to API rate limits. Values are not real market data."
             }
             
             return result
@@ -2485,7 +2486,7 @@ def calculate_technical_indicator(symbol, indicator, period=14):
     try:
         print(f"calculate_technical_indicator function called with symbol: {symbol}, indicator: {indicator}, period: {period}")
         tool = StockTool()
-        indicator_data = tool.calculate_technical_indicator(symbol, indicator, int(period))
+        indicator_data = tool.get_technical_indicator(symbol, indicator, int(period))
         description = tool.get_technical_indicator_description(indicator_data)
         print(f"Technical indicator description generated")
         return description
@@ -2510,25 +2511,29 @@ def search_stocks(query, limit=5):
     try:
         print(f"search_stocks function called with query: {query}, limit: {limit}")
         tool = StockTool()
-        search_data = tool.search_stocks(query, int(limit))
+        # tool.search_stocks returns a list of dicts
+        results_list = tool.search_stocks(query, int(limit))
         
-        # Format the results
-        results = search_data["results"]
-        count = search_data["count"]
+        # Format the results directly from the list
+        count = len(results_list)
         
         if count == 0:
-            description = f"No stocks found matching '{query}'."
+            # Use a more specific message for no results
+            description = f"No stock matches found for '{query}'."
         else:
-            description = f"Found {count} stocks matching '{query}':\n\n"
+            # Format the found results
+            description = f"Found {count} stock matches for '{query}':\n\n"
             
-            for i, result in enumerate(results, 1):
-                symbol = result["symbol"]
-                name = result["name"]
-                exchange = result["exchange"]
-                type_str = result["type"]
+            for i, result in enumerate(results_list, 1):
+                # Safely get values from each result dictionary
+                symbol = result.get("symbol", "N/A")
+                name = result.get("name", "N/A")
+                exchange = result.get("exchange", "N/A")
+                # type_str = result.get("type", "N/A") # 'type' might not be returned by search_stocks
                 
-                description += f"{i}. {symbol}: {name}\n"
-                description += f"   Exchange: {exchange}, Type: {type_str}\n\n"
+                description += f"{i}. {name} ({symbol}) - {exchange}\n" # Simplified format
+                # description += f"   Exchange: {exchange}, Type: {type_str}\n\n"
+            description = description.strip() # Remove trailing newline
         
         print(f"Stock search description generated")
         return description

@@ -48,12 +48,15 @@ class SearchTool:
     
     def __init__(self):
         """Initialize the SearchTool."""
-        # Configure logging
+        # Configure logging (only add handler once)
         self.logger = logging.getLogger("search_tool")
+        # Set level
         self.logger.setLevel(logging.INFO)
-        handler = logging.StreamHandler()
-        handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
-        self.logger.addHandler(handler)
+        # Add handler if not present
+        if not self.logger.handlers:
+            handler = logging.StreamHandler()
+            handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+            self.logger.addHandler(handler)
         
         # User agents for rotation
         self.user_agents = [
@@ -71,9 +74,18 @@ class SearchTool:
         self.cache_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "search_cache")
         self.cache_expiration = timedelta(hours=24)  # Cache results for 24 hours
         
-        # Create cache directory if it doesn't exist
+        # Create or clear cache directory to avoid stale data
         if not os.path.exists(self.cache_dir):
             os.makedirs(self.cache_dir)
+        else:
+            # Clear existing cache files
+            for fname in os.listdir(self.cache_dir):
+                file_path = os.path.join(self.cache_dir, fname)
+                try:
+                    if os.path.isfile(file_path):
+                        os.remove(file_path)
+                except Exception:
+                    pass
     
     def get_random_user_agent(self) -> str:
         """Return a random User-Agent from the list of popular browsers."""
@@ -151,60 +163,53 @@ class SearchTool:
         except Exception as e:
             self.logger.warning(f"Error saving to cache: {e}")
     
-    def search_web(self, query: str, num_results: int = 10) -> Dict[str, Any]:
+    def search_web(self, query: str, num_results: int = 10, use_cache: bool = True) -> Dict[str, Any]:
         """
         Search the web using DuckDuckGo.
-        
-        Args:
-            query (str): The search query
-            num_results (int, optional): Number of results to return (default: 10)
-            
-        Returns:
-            Dict[str, Any]: Search results with metadata
-            
-        Raises:
-            Exception: If the search fails
         """
         self.logger.info(f"Searching for: {query}")
-        
-        # Check cache first
-        cached_results = self.get_cached_results(query)
-        if cached_results is not None:
-            # Limit results to requested number
-            limited_results = cached_results[:num_results] if num_results > 0 else cached_results
-            
+
+        # Use cache if enabled
+        if use_cache:
+            cached_results = self.get_cached_results(query)
+            if cached_results is not None:
+                limited_results = cached_results[:num_results] if num_results > 0 else cached_results
+                return {
+                    "query": query,
+                    "timestamp": datetime.now().isoformat(),
+                    "results": limited_results,
+                    "source": "cache"
+                }
+        try:
+            # Try HTML version first
+            results = self._search_html_version(query)
+
+            # Fallback to lite version if no results
+            if not results:
+                self.logger.info("HTML version failed, trying lite version")
+                results = self._search_lite_version(query)
+
+            # If still no results, raise
+            if not results:
+                raise Exception(f"No search results found for: {query}")
+
+            # Cache results if enabled
+            if use_cache:
+                self.save_to_cache(query, results)
+
+            # Limit number of results
+            limited_results = results[:num_results] if num_results > 0 else results
+
             return {
                 "query": query,
                 "timestamp": datetime.now().isoformat(),
                 "results": limited_results,
-                "source": "cache"
+                "source": "DuckDuckGo",
+                "result_count": len(limited_results)
             }
-        
-        # Try to search with HTML version first
-        results = self._search_html_version(query)
-        
-        # If HTML version fails, try lite version
-        if not results:
-            self.logger.info("HTML version failed, trying lite version")
-            results = self._search_lite_version(query)
-        
-        # If we got results, cache them
-        if results:
-            self.save_to_cache(query, results)
-        else:
-            raise Exception(f"No search results found for: {query}")
-        
-        # Limit results to requested number
-        limited_results = results[:num_results] if num_results > 0 else results
-        
-        # Return formatted results
-        return {
-            "query": query,
-            "timestamp": datetime.now().isoformat(),
-            "results": limited_results,
-            "source": "DuckDuckGo",
-            "result_count": len(limited_results)
-        }
+        except Exception as e:
+            # Wrap all errors in a consistent message
+            raise Exception(f"Error searching the web: {e}")
     
     def _search_html_version(self, query: str) -> List[Dict]:
         """
@@ -257,8 +262,12 @@ class SearchTool:
         response = self._make_request(url)
         if not response:
             return []
-            
-        return self._extract_lite_results(response.text)
+        # Extract lite results
+        lite_results = self._extract_lite_results(response.text)
+        # Fallback to HTML extraction if lite returns nothing
+        if not lite_results:
+            return self._extract_html_results(response.text)
+        return lite_results
     
     def _make_request(self, url: str, max_retries: int = 3) -> Optional[requests.Response]:
         """
@@ -433,7 +442,15 @@ class SearchTool:
         except Exception as e:
             self.logger.error(f"Error extracting HTML results: {e}")
         
-        return results
+        # Deduplicate by link to avoid duplicates
+        unique_results = []
+        seen_links = set()
+        for res in results:
+            link = res.get('link')
+            if link and link not in seen_links:
+                seen_links.add(link)
+                unique_results.append(res)
+        return unique_results
     
     def _extract_lite_results(self, html_content: str) -> List[Dict]:
         """

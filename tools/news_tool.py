@@ -111,6 +111,11 @@ class NewsTool:
                 "https://lenta.ru/rss",
                 "https://tass.ru/rss/v2.xml",
                 "https://news.google.com/rss?hl=ru&gl=RU&ceid=RU:ru"
+            ],
+            "technology": [
+                "https://habr.com/ru/rss/hubs/all/",
+                "https://tproger.ru/feed/",
+                "https://www.cnews.ru/inc/rss/news.xml"
             ]
         }
         
@@ -150,7 +155,16 @@ class NewsTool:
         # Prepare feeds to search
         if is_russian:
             print("Detected Russian query, using Russian news sources")
+            # Try to detect category, default to general + tech
             feeds_to_search = self.russian_feeds["general"]
+            # Simple check for IT/Tech keywords in Russian
+            if any(keyword in query.lower() for keyword in ["it", "технолог", "программ", "компьютер", "гаджет", "хабр", "разработк"]):
+                print("Detected IT/Tech keywords, adding Russian tech feeds")
+                feeds_to_search.extend(self.russian_feeds.get("technology", []))
+            else:
+                 # If not specifically tech, maybe still add tech feeds as they might contain general IT news?
+                 # Or keep it strictly general? Let's add them for broader coverage for now.
+                 feeds_to_search.extend(self.russian_feeds.get("technology", []))
         else:
             # Format the search feeds with the query
             feeds_to_search = [feed.format(query=quote(query)) for feed in self.search_feeds]

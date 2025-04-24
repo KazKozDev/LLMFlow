@@ -6,7 +6,7 @@ import re
 import html
 from datetime import datetime
 from typing import Dict, List, Any, Optional, Union, Tuple
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
 
 class WikipediaTool:
     """
@@ -62,94 +62,46 @@ class WikipediaTool:
         self.headers = {
             'User-Agent': 'WikipediaToolForLLM/1.0'
         }
+        
+        # Set initial language and user agent
+        self.language = self.default_language
+        self.user_agent = self.headers.get('User-Agent')
     
-    def search_wikipedia(self, query: str, language: str = None, limit: int = 5) -> Dict[str, Any]:
+    def search_wikipedia(self, query: str, language: str = None, limit: int = 5) -> List[Dict[str, Any]]:
         """
         Search Wikipedia for articles matching a query.
-        
-        Args:
-            query (str): Search term
-            language (str, optional): Wikipedia language code (default: en)
-            limit (int, optional): Maximum number of results to return (default: 5)
-        
-        Returns:
-            Dict[str, Any]: Search results with details
-            
-        Raises:
-            Exception: If the API request fails
         """
         print(f"Searching Wikipedia for: {query}")
-        
+        # Validate query
+        if not query or not str(query).strip():
+            raise Exception("Error searching Wikipedia: query cannot be empty")
         # Determine language
-        lang = self._determine_language(language, query)
-        
-        # Check cache
-        cache_key = f"search:{lang}:{query}:{limit}"
-        current_time = datetime.now().timestamp()
-        if (cache_key in self.cache and 
-            current_time - self.cache_timestamp.get(cache_key, 0) < self.cache_expiry):
-            print(f"Using cached search results for {query}")
-            return self.cache[cache_key]
-        
-        # Prepare request parameters
-        params = {
-            'action': 'query',
-            'list': 'search',
-            'srsearch': query,
-            'format': 'json',
-            'srlimit': limit,
-            'srprop': 'snippet|titlesnippet|sectiontitle'
-        }
-        
+        lang = language if language else self.language
+        # Build URL with parameters
+        params = {'action': 'query', 'list': 'search', 'srsearch': query, 'format': 'json', 'srlimit': limit}
+        url = self.api_base_url.format(lang=lang) + '?' + urlencode(params)
+        # Make the request
         try:
-            # Make the API request
-            url = self.api_base_url.format(lang=lang)
-            print(f"Making Wikipedia search request to {url}")
-            response = requests.get(url, params=params, headers=self.headers, timeout=10)
-            response.raise_for_status()
-            
-            data = response.json()
-            print(f"Received response for {query}")
-            
-            # Extract search results
-            search_results = data.get('query', {}).get('search', [])
-            
-            # Format the response
-            results = []
-            for item in search_results:
-                # Clean up snippet text
-                snippet = self._clean_html(item.get('snippet', ''))
-                title = item.get('title', '')
-                
-                results.append({
-                    'title': title,
-                    'snippet': snippet,
-                    'pageid': item.get('pageid', 0)
-                })
-            
-            # Construct the result
-            result = {
-                'query': query,
-                'language': lang,
-                'count': len(results),
-                'results': results,
-                'timestamp': datetime.now().isoformat()
-            }
-            
-            # Cache the result
-            self.cache[cache_key] = result
-            self.cache_timestamp[cache_key] = current_time
-            
-            return result
-            
-        except requests.exceptions.RequestException as e:
-            error_msg = f"Error in Wikipedia search request: {str(e)}"
-            print(error_msg)
-            raise Exception(error_msg)
+            response = requests.get(url, headers=self.headers, timeout=10)
         except Exception as e:
-            error_msg = f"Error searching Wikipedia: {str(e)}"
-            print(error_msg)
-            raise Exception(error_msg)
+            raise Exception(f"Failed to connect to Wikipedia: {e}")
+        # Process response
+        try:
+            response.raise_for_status()
+            data = response.json()
+        except Exception as e:
+            raise Exception(f"Error searching Wikipedia: {e}")
+        # Extract and slice results list
+        raw_results = data.get('query', {}).get('search', [])
+        # Respect limit
+        sliced = raw_results[:limit] if limit and isinstance(limit, int) and limit > 0 else raw_results
+        results = []
+        for item in sliced:
+            title = item.get('title', '')
+            snippet = self._clean_html(item.get('snippet', ''))
+            pageid = item.get('pageid', 0)
+            results.append({'title': title, 'snippet': snippet, 'pageid': pageid})
+        return results
     
     def get_article_summary(self, title: str, language: str = None) -> Dict[str, Any]:
         """
@@ -235,6 +187,24 @@ class WikipediaTool:
             Exception: If the API request fails or article not found
         """
         print(f"Getting Wikipedia content for: {title}")
+        # If pageid provided as int, fetch by pageids
+        if isinstance(title, int):
+            pageid = title
+            lang = language if language else self.language
+            params = {'action': 'query', 'prop': 'extracts', 'pageids': pageid, 'format': 'json', 'explaintext': '1'}
+            url = self.api_base_url.format(lang=lang) + '?' + urlencode(params)
+            response = requests.get(url, headers=self.headers, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            pages = data.get('query', {}).get('pages', {})
+            page = pages.get(str(pageid), {})
+            if not page or 'missing' in page:
+                raise Exception("Article not found")
+            extract = page.get('extract', '')
+            result = {'title': page.get('title', ''), 'content': extract, 'pageid': pageid}
+            # Cache article content
+            self._cache_article(pageid, result)
+            return result
         
         # Determine language
         lang = self._determine_language(language, title)
@@ -587,25 +557,64 @@ class WikipediaTool:
         
         return heading + content + footer
 
+    def set_language(self, lang_code: str):
+        """Set the language for Wikipedia API requests."""
+        import re
+        if not isinstance(lang_code, str) or not re.match(r'^[a-z]{2}$', lang_code):
+            raise ValueError("Invalid language code")
+        self.language = lang_code
+
+    def _get_api_url(self) -> str:
+        """Return the formatted API URL for the current language."""
+        return self.api_base_url.format(lang=self.language)
+
+    def _cache_article(self, pageid: int, data: Dict[str, Any]) -> None:
+        """Cache article content by pageid."""
+        key = f"article:{pageid}"
+        self.cache[key] = data
+        self.cache_timestamp[key] = datetime.now().timestamp()
+
+    def _get_cached_article(self, pageid: int) -> Optional[Dict[str, Any]]:
+        """Retrieve cached article content by pageid."""
+        key = f"article:{pageid}"
+        if key in self.cache and datetime.now().timestamp() - self.cache_timestamp.get(key, 0) < self.cache_expiry:
+            return self.cache[key]
+        return None
+
 # Functions to expose to the LLM tool system
 def search_wikipedia(query, language=None, limit=5):
     """
-    Search Wikipedia for articles matching a query
+    Search Wikipedia for articles matching a query.
     
     Args:
         query (str): Search term
         language (str, optional): Wikipedia language code (default: en)
-        limit (int, optional): Maximum number of results to return (default: 5)
+        limit (int, optional): Max number of results (default: 5)
         
     Returns:
-        str: Search results in natural language
+        str: Formatted list of search results
     """
     try:
         print(f"search_wikipedia function called with query: {query}, language: {language}, limit: {limit}")
+        # Get the tool instance
         tool = WikipediaTool()
-        search_data = tool.search_wikipedia(query, language, int(limit))
-        description = tool.get_search_description(search_data)
-        print(f"Search completed with {search_data['count']} results")
+        if language:
+            tool.set_language(language)
+            
+        # Perform the search
+        results_list = tool.search_wikipedia(query, language=language, limit=int(limit))
+        
+        # Prepare data for the description formatter
+        search_data_dict = {
+            "query": query,
+            "language": language or tool.language,
+            "results": results_list,
+            "count": len(results_list)
+        }
+        
+        # Format the description
+        description = tool.get_search_description(search_data_dict)
+        print(f"Wikipedia search completed with {len(results_list)} results")
         return description
     except Exception as e:
         error_msg = f"Error searching Wikipedia: {str(e)}"

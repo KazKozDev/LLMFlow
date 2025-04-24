@@ -66,26 +66,62 @@ class CurrencyTool:
         Raises:
             Exception: If the API request fails or currencies are invalid
         """
-        print(f"Converting {amount} {from_currency} to {to_currency}")
+        # Ensure amount is a float
+        try:
+            amount_float = float(amount)
+        except (ValueError, TypeError):
+            raise Exception(f"Invalid amount provided: '{amount}'. Amount must be a number.")
+        
+        print(f"Converting {amount_float} {from_currency} to {to_currency}")
         
         # Standardize currency codes
         from_currency = self._standardize_currency_code(from_currency)
         to_currency = self._standardize_currency_code(to_currency)
         
-        # Get the exchange rates with the source currency as base
-        rates = self._get_exchange_rates(from_currency)
-        
+        # Validate currency codes before proceeding
+        if len(from_currency) != 3 or not from_currency.isalpha():
+            raise Exception(f"Currency '{from_currency}' is not supported")
+        if len(to_currency) != 3 or not to_currency.isalpha():
+            raise Exception(f"Currency '{to_currency}' is not supported")
+
+        # If converting to the same currency, short-circuit the call
+        if from_currency == to_currency:
+            return {
+                "query": {
+                    "amount": amount_float,
+                    "from": from_currency,
+                    "to": to_currency,
+                    "timestamp": datetime.now().isoformat()
+                },
+                "result": {
+                    "amount": amount_float,
+                    "formatted": f"{amount_float:.2f} {to_currency}"
+                },
+                "info": {
+                    "rate": 1.0,
+                    "timestamp": datetime.now().isoformat(),
+                    "inverse_rate": 1.0
+                }
+            }
+
+        try:
+            # Get the exchange rates with the source currency as base
+            rates = self._get_exchange_rates(from_currency)
+        except Exception as e:
+            # Wrap lower-level exceptions in a consistent, test-friendly message
+            raise Exception(f"Error in currency conversion: {e}") from e
+
         # Check if the target currency is supported
         if to_currency not in rates:
             raise Exception(f"Currency '{to_currency}' is not supported")
-        
+
         # Perform the conversion
-        converted_amount = amount * rates[to_currency]
-        
+        converted_amount = amount_float * rates[to_currency]
+
         # Format the response
         result = {
             "query": {
-                "amount": amount,
+                "amount": amount_float,
                 "from": from_currency,
                 "to": to_currency,
                 "timestamp": datetime.now().isoformat()
@@ -100,7 +136,7 @@ class CurrencyTool:
                 "inverse_rate": 1 / rates[to_currency]
             }
         }
-        
+
         return result
     
     def get_exchange_rates(self, base_currency: str) -> Dict[str, Any]:
@@ -304,29 +340,28 @@ class CurrencyTool:
         
         return description
 
-# Function to expose to the LLM tool system
-def convert_currency(amount, from_currency, to_currency):
+def convert_currency(amount: float, from_currency: str, to_currency: str) -> Dict[str, Any]:
     """
-    Convert an amount from one currency to another
+    Convert an amount from one currency to another.
     
     Args:
         amount (float): The amount to convert
         from_currency (str): Source currency code (e.g., USD, EUR)
         to_currency (str): Target currency code (e.g., JPY, GBP)
-        
+    
     Returns:
-        str: Conversion result in natural language
+        Dict[str, Any]: Conversion result with details
     """
+    global _currency_tool
     try:
-        print(f"convert_currency function called with: {amount} {from_currency} to {to_currency}")
-        tool = CurrencyTool()
-        conversion_data = tool.convert_currency(float(amount), from_currency, to_currency)
-        description = tool.get_conversion_description(conversion_data)
-        print(f"Conversion description: {description}")
-        return description
-    except Exception as e:
-        error_msg = f"Error converting currency: {str(e)}"
-        print(error_msg)
-        import traceback
-        traceback.print_exc()
-        return error_msg
+        _currency_tool
+    except NameError:
+        _currency_tool = CurrencyTool()
+    
+    return _currency_tool.convert_currency(amount, from_currency, to_currency)
+
+# Create a single instance for the module
+try:
+    _currency_tool
+except NameError:
+    _currency_tool = CurrencyTool()

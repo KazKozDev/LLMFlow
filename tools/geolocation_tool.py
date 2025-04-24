@@ -1033,7 +1033,7 @@ class GeolocationTool:
     
     def get_location_description(self, location_data: Dict[str, Any]) -> str:
         """
-        Generate a human-readable description of a location.
+        Generate a human-readable description of the location data.
         
         Args:
             location_data (Dict[str, Any]): Location data from get_location_info
@@ -1041,47 +1041,35 @@ class GeolocationTool:
         Returns:
             str: Human-readable location description
         """
-        name = location_data["name"]
-        formatted_address = location_data["formatted_address"]
-        lat = location_data["coordinates"]["latitude"]
-        lon = location_data["coordinates"]["longitude"]
+        # Check if results are present and valid
+        if not location_data or not location_data.get("results") or not isinstance(location_data["results"], list) or len(location_data["results"]) == 0:
+            return "Could not extract location details from the provided data."
+
+        # Access the first result in the list
+        first_result = location_data["results"][0]
+
+        name = first_result.get("name", "N/A")
+        display_name = first_result.get("display_name", "N/A")
+        coords = first_result.get("coordinates", {})
+        lat = first_result.get("latitude", "N/A")
+        lon = first_result.get("longitude", "N/A")
+        address_data = first_result.get("address", {})
+        city = address_data.get("city")
+        state = address_data.get("state") or address_data.get("region") # Handle variations
+        country = address_data.get("country", "N/A")
+        place_type = first_result.get("type", "N/A")
         
-        extra_info = location_data.get("extra_info", {})
-        description = extra_info.get("description", "")
+        description = f"{name} is located at {display_name}.\n"
+        description += f"Coordinates: {lat}, {lon}\n\n"
         
-        text = f"{name} is located at {formatted_address}.\n"
-        text += f"Coordinates: {lat}, {lon}\n"
+        if city:
+            description += f"City: {city}\n"
+        if state:
+            description += f"State/Region: {state}\n"
+        description += f"Country: {country}\n"
+        description += f"Type: {place_type.capitalize()}\n"
         
-        if description:
-            text += f"\nDescription: {description}\n"
-        
-        # Add country, state, city info if available
-        components = location_data["address_components"]
-        location_parts = []
-        
-        if components.get("city"):
-            location_parts.append(f"City: {components['city']}")
-        if components.get("state"):
-            location_parts.append(f"State/Region: {components['state']}")
-        if components.get("country"):
-            location_parts.append(f"Country: {components['country']}")
-        
-        if location_parts:
-            text += "\n" + "\n".join(location_parts)
-        
-        # Add extra information if available
-        extra_parts = []
-        if "website" in extra_info:
-            extra_parts.append(f"Website: {extra_info['website']}")
-        if "phone" in extra_info:
-            extra_parts.append(f"Phone: {extra_info['phone']}")
-        if "opening_hours" in extra_info:
-            extra_parts.append(f"Opening Hours: {extra_info['opening_hours']}")
-        
-        if extra_parts:
-            text += "\n\nAdditional Information:\n" + "\n".join(extra_parts)
-        
-        return text
+        return description
     
     def get_distance_description(self, distance_data: Dict[str, Any]) -> str:
         """

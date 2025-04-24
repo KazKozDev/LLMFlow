@@ -24,6 +24,7 @@ try:
     from web_parser_tool import parse_webpage, get_page_summary
     from search_tool import search_web
     from air_quality_tool import get_air_quality, get_air_quality_by_coordinates
+    from astronomy_tool import get_celestial_events, get_visible_constellations, get_planet_info
     print("All tools imported successfully")
 except ImportError as e:
     print(f"Error importing tools: {e}")
@@ -146,18 +147,17 @@ class ConversationMemory:
             if msg.role == "user":
                 content = msg.content
                 
-                # Simple language detection based on character sets
                 # Russian
                 if re.search(r'[а-яА-Я]', content):
                     return "ru"
                 
+                # Japanese (Check before Chinese because Kanji overlap)
+                if re.search(r'[\u3040-\u30ff]', content):
+                    return "ja"
+                
                 # Chinese
                 if re.search(r'[\u4e00-\u9fff]', content):
                     return "zh"
-                
-                # Japanese
-                if re.search(r'[\u3040-\u30ff]', content):
-                    return "ja"
                 
                 # Korean
                 if re.search(r'[\uac00-\ud7a3]', content):
@@ -193,6 +193,78 @@ class LLMFlowAgent:
         # Create tool descriptions for the LLM
         self.tool_descriptions = self._create_tool_descriptions()
         
+        # Tool name mapping dictionary
+        self.tool_name_map = {
+            # Weather variations
+            'weather information': 'weather',
+            'weather tool': 'weather',
+            'weather': 'weather',
+            
+            # Time variations
+            'time information': 'time',
+            'time tool': 'time',
+            'time': 'time',
+            
+            # Currency variations
+            'currency conversion': 'currency',
+            'currency converter': 'currency',
+            'currency tool': 'currency',
+            'currency': 'currency',
+            
+            # Geolocation variations
+            'geolocation information': 'geolocation',
+            'geolocation tool': 'geolocation',
+            'geolocation': 'geolocation',
+            'location': 'geolocation',
+            'distance': 'geolocation',
+            
+            # News variations
+            'news information': 'news',
+            'news retrieval': 'news',
+            'news tool': 'news',
+            'news': 'news',
+            
+            # Stock variations
+            'stock information': 'stock',
+            'stock market': 'stock',
+            'stock tool': 'stock',
+            'stock': 'stock',
+            'finance': 'stock',
+            
+            # Wikipedia variations
+            'wikipedia information': 'wikipedia',
+            'wikipedia knowledge': 'wikipedia',
+            'wikipedia tool': 'wikipedia',
+            'wikipedia': 'wikipedia',
+            
+            # Web parser variations
+            'web parser information': 'web_parser',
+            'web parser tool': 'web_parser',
+            'web parser': 'web_parser',
+            'webpage parser': 'web_parser',
+            
+            # Search variations
+            'search information': 'search',
+            'web search': 'search',
+            'search tool': 'search',
+            'search': 'search',
+            
+            # Air quality variations
+            'air quality information': 'air_quality',
+            'air quality tool': 'air_quality',
+            'air quality': 'air_quality',
+            'air': 'air_quality',
+            
+            # Astronomy variations
+            'astronomy information': 'astronomy',
+            'astronomy tool': 'astronomy',
+            'astronomy': 'astronomy',
+            'celestial': 'astronomy',
+            'constellation': 'astronomy',
+            'planet': 'astronomy',
+            'eclipse': 'astronomy'
+        }
+        
         # Initialize chain orchestrator
         from chain_orchestrator import ChainOrchestrator
         self.orchestrator = ChainOrchestrator(self)
@@ -218,6 +290,7 @@ class LLMFlowAgent:
             "web_parser": {"module": "web_parser_tool", "functions": ["parse_webpage", "get_page_summary"]},
             "search": {"module": "search_tool", "functions": ["search_web"]},
             "air_quality": {"module": "air_quality_tool", "functions": ["get_air_quality", "get_air_quality_by_coordinates"]},
+            "astronomy": {"module": "astronomy_tool", "functions": ["get_celestial_events", "get_visible_constellations", "get_planet_info"]},
         }
         
         # Check if each tool is available
@@ -252,7 +325,6 @@ class LLMFlowAgent:
         Returns:
             Dict[str, Dict[str, Any]]: Dictionary of tool descriptions
         """
-        # Tool descriptions and their function signatures
         tool_descriptions = {
             "currency": {
                 "description": "Convert amounts between different currencies using real-time exchange rates",
@@ -325,7 +397,7 @@ class LLMFlowAgent:
                 }
             },
             "time": {
-                "description": "Provides time-related information for different timezones",
+                "description": "Provides time-related information for different timezones. Use only for queries explicitly asking for current time or time conversions.",
                 "functions": {
                     "get_current_time": {
                         "description": "Get current time for a location",
@@ -395,27 +467,47 @@ class LLMFlowAgent:
                 }
             },
             "search": {
-                "description": "Search the web for information on any topic using DuckDuckGo",
+                "description": "Performs web searches using external search APIs",
                 "functions": {
                     "search_web": {
-                        "description": "Search the web for information on a topic",
-                        "arguments": ["query", "num_results(optional)"],
-                        "example": "search_web('latest developments in artificial intelligence', 5)"
+                        "description": "Search the web for a query",
+                        "arguments": ["query", "max_results(optional)"],
+                        "example": "search_web('best python tutorials', 5)"
                     }
                 }
             },
             "air_quality": {
-                "description": "Retrieves current air quality data for locations worldwide",
+                "description": "Retrieves air quality data for specific locations",
                 "functions": {
                     "get_air_quality": {
-                        "description": "Get air quality information for a specified location",
+                        "description": "Get current air quality for a location",
                         "arguments": ["location"],
                         "example": "get_air_quality('Beijing')"
                     },
                     "get_air_quality_by_coordinates": {
-                        "description": "Get air quality information for specified coordinates",
+                        "description": "Get air quality by latitude and longitude",
                         "arguments": ["latitude", "longitude"],
                         "example": "get_air_quality_by_coordinates(40.7128, -74.0060)"
+                    }
+                }
+            },
+            "astronomy": {
+                "description": "Retrieves information about celestial events, visible constellations, and planets. Use for queries about stars, constellations, or the night sky.",
+                "functions": {
+                    "get_celestial_events": {
+                        "description": "List upcoming astronomical events like eclipses or meteor showers",
+                        "arguments": ["date(optional)", "location(optional)"],
+                        "example": "get_celestial_events('2025-04-23', 'Paris')"
+                    },
+                    "get_visible_constellations": {
+                        "description": "Identify constellations visible from a location on a given date, ideal for queries about the night sky or stargazing",
+                        "arguments": ["location", "date(optional)"],
+                        "example": "get_visible_constellations('London', '2025-04-23')"
+                    },
+                    "get_planet_info": {
+                        "description": "Retrieve details about a specific planet",
+                        "arguments": ["planet"],
+                        "example": "get_planet_info('Jupiter')"
                     }
                 }
             }
@@ -428,6 +520,291 @@ class LLMFlowAgent:
                 descriptions[tool_name] = tool_desc
         
         return descriptions
+    
+    def normalize_tool_name(self, tool_name: str) -> str:
+        """
+        Normalize the tool name to a standard key.
+        
+        Args:
+            tool_name (str): The tool name from the LLM
+            
+        Returns:
+            str: Normalized tool name
+        """
+        if not tool_name:
+            return None
+            
+        # Convert to lowercase
+        tool_name_lower = tool_name.lower()
+        
+        # Check for exact match
+        if tool_name_lower in self.tool_name_map:
+            return self.tool_name_map[tool_name_lower]
+            
+        # Check for partial match
+        for key in self.tool_name_map:
+            if key in tool_name_lower or tool_name_lower in key:
+                return self.tool_name_map[key]
+        
+        # If no matches found, return original name
+        return tool_name
+    
+    def extract_entities_with_llm(self, query: str) -> Dict[str, Any]:
+        """
+        Extract entities from the query using the LLM (cities, dates, objects, etc.).
+        
+        Args:
+            query (str): The user's query
+            
+        Returns:
+            Dict[str, Any]: Dictionary of extracted entities
+        """
+        language = self.memory.detect_language() or "en"
+        
+        prompt = f"""Analyze the following user query and extract key entities.
+For queries about weather, air quality, or celestial events, extract the location name in standard English form.
+
+For example:
+- "погода в Барселоне" -> location: "Barcelona"
+- "air quality in New York" -> location: "New York"
+- "eclipse Barcelona" -> location: "Barcelona", event_type: "eclipse"
+- "лунное затмение" -> event_type: "lunar eclipse"
+- "курс евро к рублю" -> from_currency: "EUR", to_currency: "RUB"
+
+If the location is in a non-standard case or form (e.g., "Барселоне" instead of "Барселона"), normalize it first.
+
+User query: "{query}"
+Detected language: {language}
+
+Respond ONLY with a JSON object containing the extracted entities. For example:
+{{
+  "location": "Barcelona",
+  "event_type": "weather",
+  "other_parameters": null,
+  "from_currency": "EUR",
+  "to_currency": "RUB",
+  "amount": 1
+}}
+"""
+    
+        llm_response = self.query_llm(prompt)
+        
+        try:
+            # Extract JSON from response
+            json_match = re.search(r'(\{.*\})', llm_response, re.DOTALL)
+            if json_match:
+                json_str = json_match.group(1)
+                extracted = json.loads(json_str)
+                print(f"Extracted entities: {extracted}")
+                return extracted
+        except Exception as e:
+            print(f"Error extracting entities: {e}")
+    
+        return {}
+    
+    def determine_query_type(self, query: str) -> Dict[str, Any]:
+        """
+        Determine the type of query and appropriate action.
+        
+        Args:
+            query (str): User query
+            
+        Returns:
+            Dict[str, Any]: Query type and action details
+        """
+        query = query.lower().strip()
+        
+        # Check for exit command
+        if query in ['exit', 'quit', 'stop']:
+            return {"type": "exit"}
+        
+        # Extract entities from the query to help with classification
+        extracted_entities = self.extract_entities_with_llm(query)
+        
+        # Get conversation history for context
+        conversation_history = self.memory.get_conversation_history(max_items=5)
+        conversation_text = "\n".join([
+            f"{msg['role']}: {msg['content']}" for msg in conversation_history
+        ])
+        
+        # Detect the language
+        language = self.memory.detect_language() or "en"
+        
+        # Create the prompt with extracted entities
+        prompt = f"""You are an assistant that can handle casual conversations and use tools to provide information.
+
+First, determine if the user's query requires:
+1. Multiple tools in sequence (e.g., "check weather in Tokyo and find news if raining")
+2. A single tool (e.g., "what's the weather in London")
+3. Just casual conversation (e.g., "how are you")
+
+Extracted entities from query:
+{json.dumps(extracted_entities, indent=2)}
+
+Available tools and their exact function names:
+- Currency: convert_currency
+- Geolocation: get_location_info, calculate_distance, find_nearby_places
+- News: search_news, get_headlines
+- Stock: get_stock_quote, get_company_info, get_historical_data, get_market_summary
+- Time: get_current_time, convert_time, get_time_difference, list_timezones
+- Weather: get_weather
+- Wikipedia: search_wikipedia, get_article_summary, get_article_content
+- Web parser: parse_webpage, get_page_summary
+- Search: search_web
+- Air quality: get_air_quality, get_air_quality_by_coordinates
+- Astronomy: get_celestial_events, get_visible_constellations, get_planet_info
+
+IMPORTANT INSTRUCTIONS:
+
+1. For queries about constellations, stars, the night sky or planets, ALWAYS use the astronomy tool.
+2. For queries about eclipses or celestial events in a specific location (e.g., "eclipse Barcelona"), use the astronomy.get_celestial_events function. DO NOT use non-existent functions like "get_eclipse_details".
+3. For queries in non-English languages, normalize and translate location names to English:
+   - "погода в Барселоне" -> tool: weather, args: ["Barcelona"]
+   - "качество воздуха в Мадриде" -> tool: air_quality, args: ["Madrid"]
+4. For currency conversion queries:
+   - Always include amount as first argument, even if not explicitly mentioned (use 1 as default)
+   - "курс евро к рублю" -> tool: currency, function: convert_currency, args: [1, "EUR", "RUB"]
+
+Detected language: {language}
+
+Recent conversation:
+{conversation_text}
+
+User query: "{query}"
+
+IMPORTANT: You must respond with ONLY a valid JSON object, no other text. The JSON must contain these exact fields:
+{{
+  "type": "tool_request" or "chain_query" or "casual_conversation" or "exit",
+  "tool": "tool_name (if applicable)",
+  "function": "function_name (if applicable)",
+  "args": ["arg1", "arg2", ... (if applicable)],
+  "explanation": "Brief explanation for the classification",
+  "language": "language_code",
+  "translation": "English translation if needed, otherwise null"
+}}
+"""
+
+        # Get the LLM's response
+        llm_response = self.query_llm(prompt)
+        
+        try:
+            # Clean the response to ensure it's valid JSON
+            llm_response = llm_response.strip()
+            if not llm_response.startswith('{'):
+                # Try to find JSON in the response
+                json_match = re.search(r'(\{.*\})', llm_response, re.DOTALL)
+                if json_match:
+                    llm_response = json_match.group(1)
+                else:
+                    raise ValueError("No valid JSON found in response")
+            
+            # Parse the JSON
+            result = json.loads(llm_response)
+            
+            # Normalize tool names
+            if 'tool' in result and result['tool'] is not None:
+                normalized_tool = self.normalize_tool_name(result['tool'])
+                print(f"Tool name normalized: '{result['tool']}' -> '{normalized_tool}'")
+                result['tool'] = normalized_tool
+            
+            # Check and correct functions
+            if 'tool' in result and 'function' in result and result['tool'] is not None and result['function'] is not None:
+                # Check if the function exists in the tool
+                if result['tool'] in self.tools:
+                    available_functions = list(self.tools[result['tool']]['functions'].keys())
+                    
+                    # For eclipse and astronomical event queries
+                    if result['tool'] == 'astronomy' and result['function'] == 'get_eclipse_details':
+                        print(f"Correcting function: '{result['function']}' -> 'get_celestial_events'")
+                        result['function'] = 'get_celestial_events'
+                    
+                    # Check if the specified function exists
+                    elif result['function'] not in available_functions:
+                        print(f"Function '{result['function']}' not found in tool '{result['tool']}'")
+                        # Try to find a suitable function by purpose
+                        if result['tool'] == 'astronomy':
+                            result['function'] = 'get_celestial_events'
+                        elif result['tool'] == 'weather':
+                            result['function'] = 'get_weather'
+                        elif result['tool'] == 'air_quality':
+                            result['function'] = 'get_air_quality'
+                        print(f"Using alternative function: '{result['function']}'")
+            
+            # For currency queries
+            if result.get('tool') == 'currency':
+                # Check if correction is needed (less than 3 args)
+                if len(result.get('args', [])) < 3:
+                    # Get currencies from entities if needed
+                    amount = extracted_entities.get('amount', 1)  # Default to 1 if no amount specified
+                    from_curr = extracted_entities.get('from_currency')
+                    to_curr = extracted_entities.get('to_currency')
+
+                    # Start with a fresh list
+                    corrected_args = [amount if amount is not None else 1]  # Always start with amount, default to 1 if None
+                    
+                    # Add currencies based on what we have
+                    if len(result.get('args', [])) == 0:
+                        # No args provided, use entities
+                        if from_curr: corrected_args.append(from_curr)
+                        if to_curr: corrected_args.append(to_curr)
+                    elif len(result.get('args', [])) == 1:
+                        # One currency provided
+                        corrected_args.append(result.get('args', [])[0])
+                        if to_curr: corrected_args.append(to_curr)
+                    elif len(result.get('args', [])) == 2:
+                        # Both currencies provided but no amount
+                        corrected_args.extend(result.get('args', []))
+                    
+                    # Ensure we have exactly 3 arguments
+                    while len(corrected_args) < 3:
+                        corrected_args.append(None)
+                    
+                    result['args'] = corrected_args[:3]  # Take only first 3 arguments
+            
+            # Check arguments for astronomy
+            if result.get('tool') == 'astronomy' and result.get('function') == 'get_celestial_events':
+                # Check if the first argument is a valid date or None
+                if result.get('args') and len(result.get('args')) > 0:
+                    first_arg = result['args'][0]
+                    # If first argument doesn't look like a date (YYYY-MM-DD), replace with None
+                    if first_arg and not re.match(r'\d{4}-\d{2}-\d{2}', str(first_arg)):
+                        print(f"Replaced invalid date parameter '{first_arg}' with None")
+                        result['args'][0] = None
+            
+            # Add or correct arguments based on extracted entities
+            if 'args' in result and 'location' in extracted_entities and extracted_entities['location']:
+                # For weather, air quality and astronomy queries
+                if result.get('tool') in ['weather', 'air_quality'] and result.get('function', '').startswith('get_'):
+                    # Add/replace first argument (location)
+                    if not result.get('args'):
+                        result['args'] = [extracted_entities['location']]
+                    else:
+                        result['args'][0] = extracted_entities['location']
+                        
+                # For astronomical event queries
+                elif result.get('tool') == 'astronomy' and result.get('function') == 'get_celestial_events':
+                    if 'location' in extracted_entities:
+                        # If no arguments or only date
+                        if not result.get('args'):
+                            result['args'] = [None, extracted_entities['location']]
+                        elif len(result.get('args', [])) == 1:
+                            result['args'].append(extracted_entities['location'])
+            
+            # Debug output
+            print(f"Query Info: {result}")
+            
+            return result
+            
+        except Exception as e:
+            print(f"Error parsing LLM response: {str(e)}")
+            print(f"Raw response: {llm_response}")
+            # Return a default response that will handle the query as a casual conversation
+            return {
+                "type": "casual_conversation",
+                "explanation": f"Error parsing response: {str(e)}",
+                "language": language,
+                "translation": None
+            }
     
     def query_llm(self, prompt: str) -> str:
         """
@@ -455,105 +832,6 @@ class LLMFlowAgent:
             print(f"Error querying LLM: {str(e)}")
             return f"Error: Could not query the LLM - {str(e)}"
     
-    def determine_query_type(self, query: str) -> Dict[str, Any]:
-        """
-        Use the LLM to determine if the user's query is a chain query, tool request, or casual conversation.
-        
-        Args:
-            query (str): The user's query
-            
-        Returns:
-            Dict[str, Any]: Query classification info
-        """
-        # Get conversation history for context
-        conversation_history = self.memory.get_conversation_history(max_items=5)
-        conversation_text = "\n".join([
-            f"{msg['role']}: {msg['content']}" for msg in conversation_history
-        ])
-        
-        # Detect the language
-        language = self.memory.detect_language() or "en"
-        
-        # Create the prompt
-        prompt = f"""You are an assistant that can handle casual conversations and use tools to provide information.
-
-First, determine if the user's query requires:
-1. Multiple tools in sequence (e.g., "check weather in Tokyo and find news if raining")
-2. A single tool (e.g., "what's the weather in London")
-3. Just casual conversation (e.g., "how are you")
-
-Available tool categories:
-- Currency conversion
-- Geolocation and places
-- News retrieval
-- Stock market information
-- Time and timezone data
-- Weather information
-- Wikipedia knowledge
-- Web page parsing
-- Web search
-- Air quality information
-
-Detected language: {language}
-
-Recent conversation:
-{conversation_text}
-
-User query: "{query}"
-
-IMPORTANT: You must respond with ONLY a valid JSON object, no other text. The JSON must contain these exact fields:
-{{
-  "query_type": "chain_query" or "tool_request" or "casual_conversation",
-  "explanation": "Brief explanation for the classification",
-  "language": "language_code",
-  "translation": "English translation if needed, otherwise null"
-}}
-"""
-
-        # Get the LLM's response
-        llm_response = self.query_llm(prompt)
-        
-        try:
-            # Clean the response to ensure it's valid JSON
-            llm_response = llm_response.strip()
-            if not llm_response.startswith('{'):
-                # Try to find JSON in the response
-                json_match = re.search(r'(\{.*\})', llm_response, re.DOTALL)
-                if json_match:
-                    llm_response = json_match.group(1)
-                else:
-                    raise ValueError("No valid JSON found in response")
-            
-            # Parse the JSON
-            result = json.loads(llm_response)
-            
-            # Validate required fields
-            required_fields = ["query_type", "explanation", "language", "translation"]
-            for field in required_fields:
-                if field not in result:
-                    raise ValueError(f"Missing required field: {field}")
-            
-            # Validate query_type
-            valid_types = ["chain_query", "tool_request", "casual_conversation"]
-            if result["query_type"] not in valid_types:
-                raise ValueError(f"Invalid query_type: {result['query_type']}")
-            
-            print(f"Query classification: {result.get('query_type')}")
-            print(f"Explanation: {result.get('explanation')}")
-            
-            return result
-            
-        except Exception as e:
-            print(f"Error parsing LLM response: {str(e)}")
-            print(f"Raw response: {llm_response}")
-            # Return a default response that will handle the query as a casual conversation
-            return {
-                "query_type": "casual_conversation",
-                "explanation": f"Error parsing response: {str(e)}",
-                "language": language,
-                "translation": None
-            }
-    
     def analyze_tool_query(self, query: str, translation: Optional[str] = None) -> Tuple[Optional[str], Optional[str], List[str]]:
         """
         Analyze a tool request query to determine which tool, function, and arguments to use.
@@ -569,6 +847,9 @@ IMPORTANT: You must respond with ONLY a valid JSON object, no other text. The JS
         # Use the translation if available
         effective_query = translation if translation else query
         
+        # Extract entities from the query
+        extracted_entities = self.extract_entities_with_llm(query)
+        
         # Create a prompt for the LLM
         tools_json = json.dumps(self.tool_descriptions, indent=2)
         
@@ -580,8 +861,40 @@ Available tools:
 Original user query: "{query}"
 Translated query (if applicable): "{effective_query}"
 
+Extracted entities from query:
+{json.dumps(extracted_entities, indent=2)}
+
+Available tools and their exact function names:
+- Currency: convert_currency
+- Geolocation: get_location_info, calculate_distance, find_nearby_places
+- News: search_news, get_headlines
+- Stock: get_stock_quote, get_company_info, get_historical_data, get_market_summary
+- Time: get_current_time, convert_time, get_time_difference, list_timezones
+- Weather: get_weather
+- Wikipedia: search_wikipedia, get_article_summary, get_article_content
+- Web parser: parse_webpage, get_page_summary
+- Search: search_web
+- Air quality: get_air_quality, get_air_quality_by_coordinates
+- Astronomy: get_celestial_events, get_visible_constellations, get_planet_info
+
+IMPORTANT INSTRUCTIONS:
+
+1. For queries about constellations, stars, night sky, or planets, ALWAYS use the astronomy tool.
+2. For queries about eclipses or astronomical events (including lunar or solar eclipses), ALWAYS use the astronomy.get_celestial_events function. DO NOT use non-existent functions like "get_eclipse_details".
+3. For queries in languages other than English, normalize and translate location names to their standard English form:
+   - "погода в Барселоне" -> location: "Barcelona" (NOT "Барселоне")
+   - "качество воздуха в Мадриде" -> location: "Madrid" (NOT "Мадриде")
+4. For currency conversion queries:
+   - Always include amount as first argument, even if not explicitly mentioned (use 1 as default)
+   - "курс евро к рублю" -> tool: currency, function: convert_currency, args: [1, "EUR", "RUB"]
+
+ALWAYS choose from these available functions for astronomy tool:
+- get_celestial_events: For ALL types of celestial events including eclipses
+- get_visible_constellations: For queries about constellations visible from a location
+- get_planet_info: For queries about specific planets
+
 Respond ONLY with a JSON object containing the following fields:
-- "tool": The name of the tool to use
+- "tool": The name of the tool to use (use the exact tool name: "weather", "time", "currency", "geolocation", "news", "stock", "wikipedia", "web_parser", "search", "air_quality", "astronomy")
 - "function": The function name to call
 - "arguments": An array of argument values in the correct order for the function
 - "reasoning": A brief explanation of your selection
@@ -612,6 +925,90 @@ DO NOT include any other text in your response, ONLY the JSON object.
                 arguments = result.get("arguments", [])
                 reasoning = result.get("reasoning", "No reasoning provided")
                 
+                # Normalize tool names
+                if tool_name:
+                    normalized_tool = self.normalize_tool_name(tool_name)
+                    print(f"Tool name normalized: '{tool_name}' -> '{normalized_tool}'")
+                    tool_name = normalized_tool
+                
+                # Check and correct functions
+                if tool_name in self.tools:
+                    available_functions = list(self.tools[tool_name]['functions'].keys())
+                    
+                    # For eclipse queries
+                    if tool_name == 'astronomy' and function_name == 'get_eclipse_details':
+                        print(f"Correcting function: '{function_name}' -> 'get_celestial_events'")
+                        function_name = 'get_celestial_events'
+                    
+                    # Check if the specified function exists
+                    elif function_name not in available_functions:
+                        print(f"Function '{function_name}' not found in tool '{tool_name}'")
+                        # Try to find a suitable function
+                        if tool_name == 'astronomy':
+                            function_name = 'get_celestial_events'
+                        elif tool_name == 'weather':
+                            function_name = 'get_weather'
+                        elif tool_name == 'air_quality':
+                            function_name = 'get_air_quality'
+                        print(f"Using alternative function: '{function_name}'")
+                
+                # For currency queries
+                if tool_name == 'currency':
+                    # Check if correction is needed (less than 3 args)
+                    if len(arguments) < 3:
+                        # Get currencies from entities if needed
+                        amount = extracted_entities.get('amount', 1)  # Default to 1 if no amount specified
+                        from_curr = extracted_entities.get('from_currency')
+                        to_curr = extracted_entities.get('to_currency')
+
+                        # Start with a fresh list
+                        corrected_args = [amount if amount is not None else 1]  # Always start with amount, default to 1 if None
+                        
+                        # Add currencies based on what we have
+                        if len(arguments) == 0:
+                            # No args provided, use entities
+                            if from_curr: corrected_args.append(from_curr)
+                            if to_curr: corrected_args.append(to_curr)
+                        elif len(arguments) == 1:
+                            # One currency provided
+                            corrected_args.append(arguments[0])
+                            if to_curr: corrected_args.append(to_curr)
+                        elif len(arguments) == 2:
+                            # Both currencies provided but no amount
+                            corrected_args.extend(arguments)
+                        
+                        # Ensure we have exactly 3 arguments
+                        while len(corrected_args) < 3:
+                            corrected_args.append(None)
+                        
+                        arguments = corrected_args[:3]  # Take only first 3 arguments
+                
+                # Check arguments for astronomy
+                if tool_name == 'astronomy' and function_name == 'get_celestial_events':
+                    # Check if the first argument is a valid date or None
+                    if arguments and len(arguments) > 0:
+                        first_arg = arguments[0]
+                        # If first argument doesn't look like a date (YYYY-MM-DD), replace with None
+                        if first_arg and not re.match(r'\d{4}-\d{2}-\d{2}', str(first_arg)):
+                            print(f"Replaced invalid date parameter '{first_arg}' with None")
+                            arguments[0] = None
+                
+                # Replace arguments with extracted entities when needed
+                if extracted_entities and 'location' in extracted_entities and extracted_entities['location']:
+                    # For functions that take location as first argument
+                    if function_name and function_name.startswith('get_') and tool_name in ['weather', 'air_quality']:
+                        if not arguments:
+                            arguments = [extracted_entities['location']]
+                        else:
+                            arguments[0] = extracted_entities['location']
+                    
+                    # For get_celestial_events function that takes location as second argument
+                    if tool_name == 'astronomy' and function_name == 'get_celestial_events':
+                        if not arguments:
+                            arguments = [None, extracted_entities['location']]
+                        elif len(arguments) == 1:
+                            arguments.append(extracted_entities['location'])
+                
                 print(f"LLM reasoning: {reasoning}")
                 
                 return tool_name, function_name, arguments
@@ -636,6 +1033,8 @@ DO NOT include any other text in your response, ONLY the JSON object.
         Returns:
             str: Result from the tool
         """
+        print(f"Executing tool: {tool_name}.{function_name} with args: {args}")
+        
         if tool_name not in self.tools or function_name not in self.tools[tool_name]["functions"]:
             return f"Error: Tool '{tool_name}' or function '{function_name}' not available"
         
@@ -656,11 +1055,13 @@ DO NOT include any other text in your response, ONLY the JSON object.
             result = func(*args[:len(params)])
             
             # Add to memory
-            self.memory.add_tool_usage(tool_name, function_name, args, result)
+            self.memory.add_tool_usage(tool_name, function_name, args, str(result))
             
             return result
         except Exception as e:
-            return f"Error executing {function_name}: {str(e)}"
+            error_msg = f"Error executing {function_name}: {str(e)}"
+            print(error_msg)
+            return error_msg
     
     def handle_casual_conversation(self, query: str, query_info: Dict[str, Any]) -> str:
         """
@@ -724,8 +1125,11 @@ Respond directly to the user in their language.
         try:
             # First, determine if this is a tool request, chain query, or casual conversation
             query_info = self.determine_query_type(query)
-            query_type = query_info.get("query_type", "casual_conversation")
-            translation = query_info.get("translation")
+            query_type = query_info.get("type", "casual_conversation")
+            
+            # Handle exit command
+            if query_type == "exit":
+                return "exit"
             
             # Handle based on query type
             if query_type == "chain_query":
@@ -746,21 +1150,25 @@ Respond directly to the user in their language.
                 except Exception as e:
                     print(f"Error in chain query execution: {str(e)}")
                     # Try to handle the query as a tool request instead
-                    tool_name, function_name, args = self.analyze_tool_query(query, translation)
+                    tool_name = query_info.get("tool")
+                    function_name = query_info.get("function")
+                    args = query_info.get("args", [])
+                    
                     if tool_name and function_name:
                         response = self.execute_tool(tool_name, function_name, args)
                     else:
                         response = "I apologize, but I encountered an error while trying to process your request. Could you please try rephrasing your question?"
                         
             elif query_type == "tool_request":
-                # Analyze the query to determine tool and function
-                tool_name, function_name, args = self.analyze_tool_query(query, translation)
+                # Get tool details
+                tool_name = query_info.get("tool")
+                function_name = query_info.get("function")
+                args = query_info.get("args", [])
                 
                 if not tool_name or not function_name:
                     response = "I understand you're asking me to use a tool, but I'm not sure which one would help. Could you please be more specific about what information you're looking for?"
                 else:
                     # Execute the tool
-                    print(f"Using tool: {tool_name}, function: {function_name}, args: {args}")
                     response = self.execute_tool(tool_name, function_name, args)
             else:
                 # Handle casual conversation
@@ -792,6 +1200,9 @@ def main():
     print("- 'Parse this webpage: https://example.com/article'")
     print("- 'Search the web for latest AI developments'")
     print("- 'How's the air quality in Beijing?'")
+    print("- 'What constellations can I see in London tonight?'")
+    print("- 'Tell me about Jupiter'")
+    print("- 'What astronomical events are happening soon?'")
     print("- Or simply chat with me like 'Hello, how are you?'")
     print("\nType 'exit' or 'quit' to end.")
     
@@ -802,6 +1213,10 @@ def main():
                 break
                 
             response = agent.process_query(query)
+            if response == "exit":
+                print("Thank you for using the LLMFlowAgent!")
+                break
+                
             print("\nResponse:")
             print(response)
         except UnicodeDecodeError:

@@ -8,6 +8,7 @@ import random
 import time
 from typing import Dict, List, Any, Optional, Union, Tuple
 from urllib.parse import quote, urlencode
+from datetime import datetime
 
 class AirQualityTool:
     """
@@ -172,7 +173,7 @@ class AirQualityTool:
         # First method: WAQI API (World Air Quality Index)
         try:
             data = self._get_waqi_data(location)
-            if data and "aqi" in data and data["aqi"] is not None:
+            if data and "air_quality" in data and data["air_quality"] is not None:
                 return self._format_response(data, location, "WAQI")
         except Exception as e:
             print(f"WAQI method failed: {e}")
@@ -180,7 +181,7 @@ class AirQualityTool:
         # Second method: IQAir scraping
         try:
             data = self._get_iqair_data(location)
-            if data and "aqi" in data and data["aqi"] is not None:
+            if data and "air_quality" in data and data["air_quality"] is not None:
                 return self._format_response(data, location, "IQAir")
         except Exception as e:
             print(f"IQAir method failed: {e}")
@@ -212,7 +213,7 @@ class AirQualityTool:
         # Try WAQI coordinates API
         try:
             data = self._get_waqi_coordinates_data(latitude, longitude)
-            if data and "aqi" in data and data["aqi"] is not None:
+            if data and "air_quality" in data and data["air_quality"] is not None:
                 location_name = data.get("city", {}).get("name", f"Location at {latitude}, {longitude}")
                 return self._format_response(data, location_name, "WAQI")
         except Exception as e:
@@ -248,60 +249,49 @@ class AirQualityTool:
         return None
     
     def _get_waqi_data(self, city: str) -> Dict[str, Any]:
-        """
-        Get air quality data from World Air Quality Index (WAQI) public API.
-        
-        Args:
-            city (str): City name
-            
-        Returns:
-            Dict[str, Any]: Air quality data or empty dict if failed
-        """
-        # This uses the public (keyless) access method, which works with limitations
-        encoded_city = quote(city)
-        url = f"https://api.waqi.info/feed/{encoded_city}/?token=demo"
-        
+        """Get air quality data from WAQI API."""
         try:
-            # Add randomized delay to avoid rate limiting
-            time.sleep(random.uniform(0.5, 2.0))
-            
-            headers = {
-                "User-Agent": self.get_random_user_agent(),
-                "Accept": "application/json",
-                "Referer": "https://waqi.info/"
-            }
-            
-            response = requests.get(url, headers=headers, timeout=10)
+            headers = {"User-Agent": self.get_random_user_agent()}
+            url = f"https://api.waqi.info/feed/{quote(city)}/?token=demo"
+            response = requests.get(url, headers=headers)
             response.raise_for_status()
-            
             data = response.json()
             
-            if data["status"] == "ok" and "data" in data:
-                # Extract and structure the relevant data
-                result = {
-                    "aqi": data["data"].get("aqi"),
-                    "city": data["data"].get("city", {}).get("name", city),
-                    "time": data["data"].get("time", {}).get("s", "Unknown"),
-                    "dominentpol": data["data"].get("dominentpol", "pm25"),
-                    "iaqi": data["data"].get("iaqi", {})
+            if data["status"] == "ok":
+                aqi = data["data"]["aqi"]
+                pollutants = {
+                    "pm25": data["data"]["iaqi"].get("pm25", {}).get("v"),
+                    "pm10": data["data"]["iaqi"].get("pm10", {}).get("v"),
+                    "o3": data["data"]["iaqi"].get("o3", {}).get("v"),
+                    "no2": data["data"]["iaqi"].get("no2", {}).get("v"),
+                    "so2": data["data"]["iaqi"].get("so2", {}).get("v"),
+                    "co": data["data"]["iaqi"].get("co", {}).get("v")
                 }
                 
-                # Extract pollutant values if available
-                pollutants = {}
-                iaqi = data["data"].get("iaqi", {})
-                for pol in ["pm25", "pm10", "o3", "no2", "so2", "co"]:
-                    if pol in iaqi and "v" in iaqi[pol]:
-                        pollutants[pol] = iaqi[pol]["v"]
+                # Clean up None values
+                pollutants = {k: v for k, v in pollutants.items() if v is not None}
                 
-                result["pollutants"] = pollutants
-                return result
-            else:
-                print(f"WAQI API returned non-OK status: {data['status']}")
-                return {}
+                # Determine AQI category
+                category = "unknown"
+                for cat, info in self.aqi_categories.items():
+                    if info["range"][0] <= aqi <= info["range"][1]:
+                        category = cat
+                        break
                 
+                return {
+                    "air_quality": {
+                        "aqi": aqi,
+                        "category": category,
+                        "pollutants": pollutants
+                    },
+                    "timestamp": data["data"]["time"]["iso"]
+                }
+            
+            return {"error": "Invalid response from WAQI API"}
+            
         except Exception as e:
             print(f"Error accessing WAQI API: {e}")
-            return {}
+            return {"error": str(e)}
     
     def _get_waqi_coordinates_data(self, lat: float, lon: float) -> Dict[str, Any]:
         """
@@ -334,7 +324,6 @@ class AirQualityTool:
             if data["status"] == "ok" and "data" in data:
                 # Extract and structure the relevant data
                 result = {
-                    "aqi": data["data"].get("aqi"),
                     "city": data["data"].get("city", {}).get("name", f"Location at {lat}, {lon}"),
                     "time": data["data"].get("time", {}).get("s", "Unknown"),
                     "dominentpol": data["data"].get("dominentpol", "pm25"),
@@ -563,125 +552,88 @@ class AirQualityTool:
         return result
     
     def _format_response(self, data: Dict[str, Any], location: str, source: str) -> Dict[str, Any]:
-        """
-        Format the air quality data into a standardized response.
-        
-        Args:
-            data (Dict[str, Any]): Raw air quality data
-            location (str): Location name
-            source (str): Source of the data (WAQI, IQAir, Estimated)
-            
-        Returns:
-            Dict[str, Any]: Formatted air quality response
-        """
-        # Get the AQI value and determine its category
-        aqi = data.get("aqi", 0)
-        
-        # Determine AQI category
-        category = None
-        for cat_name, cat_info in self.aqi_categories.items():
-            if cat_info["range"][0] <= aqi <= cat_info["range"][1]:
-                category = cat_name
-                break
-        
-        if not category:
-            category = "unknown"
-            cat_info = {
-                "description": "Unknown air quality level",
-                "color": "gray", 
-                "recommendation": "Unable to provide recommendations due to unknown air quality"
+        """Format the response data into a standardized format."""
+        if "error" in data:
+            return {
+                "error": data["error"],
+                "location": location,
+                "data_source": source,
+                "timestamp": datetime.now().isoformat()
             }
-        else:
-            cat_info = self.aqi_categories[category]
         
-        # Get dominant pollutant
-        dominentpol = data.get("dominentpol", "pm25")
-        dominentpol_info = self.pollutants_info.get(dominentpol, {
-            "name": dominentpol.upper(),
-            "full_name": "Unknown pollutant",
-            "description": "No information available for this pollutant",
-            "sources": "Unknown",
-            "health_effects": "Unknown"
-        })
+        # Get AQI and determine category if not already present
+        aqi = data["air_quality"]["aqi"]
+        if "category" not in data["air_quality"]:
+            category = "unknown"
+            for cat, info in self.aqi_categories.items():
+                if info["range"][0] <= aqi <= info["range"][1]:
+                    category = cat
+                    break
+            data["air_quality"]["category"] = category
         
-        # Format pollutants data
-        pollutants_data = {}
-        for pol_code, value in data.get("pollutants", {}).items():
-            if pol_code in self.pollutants_info:
-                pol_info = self.pollutants_info[pol_code]
-                pollutants_data[pol_code] = {
-                    "name": pol_info["name"],
-                    "full_name": pol_info["full_name"],
-                    "value": value,
-                    "description": pol_info["description"]
-                }
+        # Get recommendations based on AQI category
+        category = data["air_quality"]["category"]
+        recommendations = [self.aqi_categories[category]["recommendation"]]
         
-        # Create formatted response
-        response = {
+        # Add pollutant-specific recommendations if levels are high
+        for pollutant, value in data["air_quality"]["pollutants"].items():
+            if pollutant in self.pollutants_info:
+                info = self.pollutants_info[pollutant]
+                if value > self._get_pollutant_threshold(pollutant):
+                    recommendations.append(f"High {info['name']} levels: {info['health_effects']}")
+        
+        return {
+            "air_quality": data["air_quality"],
             "location": location,
-            "air_quality": {
-                "aqi": aqi,
-                "category": category,
-                "description": cat_info["description"],
-                "color": cat_info["color"]
-            },
-            "dominant_pollutant": {
-                "code": dominentpol,
-                "name": dominentpol_info["name"],
-                "full_name": dominentpol_info["full_name"],
-                "description": dominentpol_info["description"],
-                "sources": dominentpol_info["sources"],
-                "health_effects": dominentpol_info["health_effects"]
-            },
-            "pollutants": pollutants_data,
-            "health_recommendations": cat_info["recommendation"],
-            "timestamp": data.get("time", "Unknown"),
-            "source": source,
-            "notes": "Estimated values" if source == "Estimated" else ""
+            "data_source": source,
+            "timestamp": data.get("timestamp", datetime.now().isoformat()),
+            "recommendations": recommendations
         }
-        
-        return response
     
     def get_air_quality_description(self, air_quality_data: Dict[str, Any]) -> str:
-        """
-        Generate a human-readable description of air quality data.
-        
-        Args:
-            air_quality_data (Dict[str, Any]): Air quality data
+        """Generate a human-readable description of air quality data."""
+        try:
+            location = air_quality_data["location"]
+            aqi = air_quality_data["air_quality"]["aqi"]
+            category = air_quality_data["air_quality"]["category"].replace("_", " ").title()
+            pollutants = air_quality_data["air_quality"]["pollutants"]
+            recommendations = air_quality_data.get("recommendations", [])
             
-        Returns:
-            str: Human-readable air quality description
-        """
-        location = air_quality_data["location"]
-        aqi = air_quality_data["air_quality"]["aqi"]
-        category = air_quality_data["air_quality"]["category"].replace("_", " ").title()
-        description = air_quality_data["air_quality"]["description"]
-        dominant_pollutant = air_quality_data["dominant_pollutant"]["name"]
-        dominant_pollutant_full = air_quality_data["dominant_pollutant"]["full_name"]
-        recommendations = air_quality_data["health_recommendations"]
-        source = air_quality_data["source"]
-        timestamp = air_quality_data["timestamp"]
-        
-        # Create the description
-        text = f"Air Quality in {location}:\n\n"
-        text += f"The current Air Quality Index (AQI) is {aqi}, which is categorized as '{category}'.\n"
-        text += f"{description}\n\n"
-        
-        text += f"Main pollutant: {dominant_pollutant} ({dominant_pollutant_full})\n\n"
-        
-        text += "Pollutant Levels:\n"
-        for code, pollutant in air_quality_data["pollutants"].items():
-            text += f"- {pollutant['name']} ({pollutant['full_name']}): {pollutant['value']}\n"
-        
-        text += f"\nHealth Recommendations:\n{recommendations}\n\n"
-        
-        text += f"Data Source: {source}\n"
-        text += f"Last Updated: {timestamp}"
-        
-        if air_quality_data.get("notes"):
-            text += f"\n\nNotes: {air_quality_data['notes']}"
-        
-        return text
+            description = [
+                f"Air Quality Report for {location}",
+                f"Air Quality Index (AQI): {aqi} ({category})",
+                "\nPollutant Levels:"
+            ]
+            
+            for pollutant, value in pollutants.items():
+                if pollutant in self.pollutants_info:
+                    info = self.pollutants_info[pollutant]
+                    description.append(f"- {info['name']}: {value}")
+            
+            if recommendations:
+                description.append("\nRecommendations:")
+                for rec in recommendations:
+                    description.append(f"- {rec}")
+            
+            description.append(f"\nData Source: {air_quality_data['data_source']}")
+            description.append(f"Last Updated: {air_quality_data['timestamp']}")
+            
+            return "\n".join(description)
+            
+        except Exception as e:
+            return f"Error formatting air quality description: {str(e)}"
+    
+    def _get_pollutant_threshold(self, pollutant: str) -> float:
+        """Get the threshold value for a pollutant above which it's considered high."""
+        thresholds = {
+            "pm25": 35.0,  # EPA standard for 24-hour exposure
+            "pm10": 150.0, # EPA standard for 24-hour exposure
+            "o3": 70.0,    # EPA standard for 8-hour exposure
+            "no2": 100.0,  # EPA standard for 1-hour exposure
+            "so2": 75.0,   # EPA standard for 1-hour exposure
+            "co": 9.0      # EPA standard for 8-hour exposure
+        }
+        return thresholds.get(pollutant, float('inf'))
 
 # Functions to expose to the LLM tool system
 def get_air_quality(location):
