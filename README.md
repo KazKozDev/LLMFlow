@@ -178,13 +178,6 @@ We welcome contributions! To get started:
 4. Update documentation and tests as needed.
 5. Submit a pull request with a clear description.
 
-### Acknowledgments
-
-- **Ollama**: For a robust local LLM platform.
-- **Open-Meteo**: For free weather and geocoding APIs.
-- **DuckDuckGo**: For enabling web search functionality.
-- **RSS Providers**: For reliable news feeds (BBC, CNN, NYT, and others).
-- **Python Community**: For libraries like requests, feedparser, and BeautifulSoup.
 ---
 
 If you like this project, please give it a star ⭐
